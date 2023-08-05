@@ -1,0 +1,42 @@
+
+        mVertexShader = "attribute vec4 position;\n" +
+                "attribute vec2 texcoord;\n" +
+                "\n" +
+                "varying vec2 v_texcoord;\n" +
+                "\n" +
+                "void main()\n" +
+                "{\n" +
+                "    gl_Position = position;\n" +
+                "    v_texcoord = texcoord;\n" +
+                "}";
+        mFragmentShader = "precision highp float;\n" +
+                "\n" +
+                "varying vec2 v_texcoord;\n" +
+                "\n" +
+                "uniform sampler2D alphaChannel1;\n" +
+                "uniform sampler2D alphaChannel2;\n" +
+                "uniform int isMix;\n" +
+                "\n" +
+                "void main()\n" +
+                "{\n" +
+                "    vec3 src1 = texture2D(alphaChannel1, v_texcoord).rgb;\n" +
+                "    vec3 src2 = texture2D(alphaChannel2, v_texcoord).rgb;\n" +
+                "    \n" +
+                "    float gChannel;\n" +
+                "    float alpha;\n" +
+                "    if (isMix == 1) {\n" +
+                "    \talpha = clamp((src1.r + src2.r),0.0,1.0);\n" +
+                "    \tgChannel = clamp((src1.g + src2.g),0.0,1.0);\n" +
+                "    } else {\n" +
+                "    \talpha = src2.r - src1.r;\n" +
+                "    \tgChannel = src2.g - src1.g;\n" +
+                "    \tif(alpha < 0.0){\n" +
+                "    \t  \talpha = 0.0;\n" +
+                "    \t  \tgChannel = 0.0;\n" +
+                "    \t}\n" +
+                " \n" +
+                "    }\n" +
+                "    \n" +
+                "    \n" +
+                "    gl_FragColor = vec4(alpha, gChannel, 0.0, 1.0);\n" +
+                "}";

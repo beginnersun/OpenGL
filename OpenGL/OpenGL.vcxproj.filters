@@ -1,0 +1,180 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="源文件">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="头文件">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="资源文件">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\Application.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Shader.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="src\CoordinateSystem.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="src\GLTextureImage.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="src\AssimpMesh.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Calculate.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Mesh.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Model.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="src\FrameBufferTest.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="res\shaders\Basic.shader" />
+    <None Include="res\shaders\vertex.shader" />
+    <None Include="res\shaders\fragment.shader" />
+    <None Include="res\shaders\fragment_3d.shader" />
+    <None Include="res\shaders\vertex_3d.shader" />
+    <None Include="res\shaders\light_vs.shader" />
+    <None Include="res\shaders\light_fs.shader" />
+    <None Include="res\shaders\cube_vs.shader" />
+    <None Include="res\shaders\cube_fs.shader" />
+    <None Include="res\shaders\light_gouraud_fs.shader" />
+    <None Include="res\shaders\light_gouraud_vs.shader" />
+    <None Include="res\shaders\light_material_vs.shader" />
+    <None Include="res\shaders\light_material_fs.shader" />
+    <None Include="res\shaders\light_diffuse_map_fs.shader" />
+    <None Include="res\shaders\light_diffuse_map_vs.shader" />
+    <None Include="res\shaders\model\model_loading_fs.shader" />
+    <None Include="res\shaders\model\model_loading_vs.shader" />
+    <None Include="res\model\backpack\nanosuit.blend" />
+    <None Include="res\model\backpack\nanosuit.mtl" />
+    <None Include="res\model\backpack\nanosuit.pkg" />
+    <None Include="res\shaders\texture\texture_fs.shader" />
+    <None Include="res\shaders\texture\texture_vs.shader" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="Debug\image\awesomeface.png">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="Debug\image\cat.png">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="Debug\image\container.jpg">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\image\awesomeface.png">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\image\cat.png">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\image\container.jpg">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\image\matrix.jpg">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\image\container2.png">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\image\container2_specular.png">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\image\lighting_maps_specular_color.png">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\model\backpack\arm_dif.png">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\model\backpack\arm_showroom_ddn.png">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\model\backpack\arm_showroom_spec.png">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\model\backpack\body_dif.png">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\model\backpack\body_showroom_ddn.png">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\model\backpack\body_showroom_spec.png">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\model\backpack\glass_ddn.png">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\model\backpack\glass_dif.png">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\model\backpack\hand_dif.png">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\model\backpack\hand_showroom_ddn.png">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\model\backpack\hand_showroom_spec.png">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\model\backpack\helmet_diff.png">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\model\backpack\helmet_showroom_ddn.png">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\model\backpack\helmet_showroom_spec.png">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\model\backpack\leg_dif.png">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\model\backpack\leg_showroom_ddn.png">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\model\backpack\leg_showroom_spec.png">
+      <Filter>资源文件</Filter>
+    </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\Shader.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="src\GLTextureImage.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Mesh.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Model.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Camera.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="src\FileSystem.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="src\标头.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="res\shaders\model\Text.txt" />
+    <Text Include="res\model\backpack\LICENSE.txt" />
+  </ItemGroup>
+</Project>
