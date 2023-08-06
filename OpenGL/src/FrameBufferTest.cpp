@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
@@ -32,6 +33,37 @@ float lastLightX = 400, lastLightY = 300;
 float yawLight = -90.0f, pitchLight = 0.0f;
 float fovLight = 45.0;
 bool firstLightMouse = true;
+
+typedef unsigned char BYTE;
+typedef unsigned short Word;
+typedef unsigned long DWord;
+typedef long Long;
+
+//图片扫描方式 从左到右从下到上扫描像素信息
+
+/*文件信息头*/
+struct BitmapFileHeader {
+	Word bfType; //两字节固定内容BM
+	DWord bfSize; //整个BMP文件的大小
+	Word bfReserved1; // 0
+	Word bfReserved2; // 0
+	DWord bfOffBits; //文件起始位置到像素数据的偏移量
+};
+
+/*位图信息头*/
+struct BitmapInfoHeader {
+	DWord biSize; //此结构体占用的大小 固定40
+	Long biWidth; //图片宽
+	Long biHeight; //图片高
+	Word biPanels; //平面数 1
+	Word biBitCount; //像素位数 1 2 8 16 24 32
+	DWord biCompression; // 压缩方式 0 不压缩 1 RLE8 2 RLE4
+	DWord biSizeImage; // 4字节对齐的图像数据大小
+	Long biXPelsPermeter; //X方向的分辨率
+	Long biYPelsPermeter; //Y....的分辨率
+	DWord biClrUsed;      //实际调色板索引数 0 适用所有调色板索引
+	DWord biClrImportant; //重要调色板索引数 0 所有都重要
+};
 
 int main() {
 
@@ -223,8 +255,8 @@ int main() {
 	glGenTextures(1, &colourTextureAppend);
 	glBindTexture(GL_TEXTURE_2D, colourTextureAppend);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 	//GL_COLOR_ATTACHMENT0 代表要绑定的是色彩附件 也可以板顶深度或者模板信息附件啥的（不过一般不用这种方式）
 	//glBindTexture(GL_TEXTURE_2D, 0); //解绑Texture
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colourTextureAppend, 0);
@@ -268,6 +300,7 @@ int main() {
 		glm::vec3(0.0f,0.0f,-3.0f)
 	};
 
+	unsigned char *data = NULL;
 
 	while (!glfwWindowShouldClose(window))
 	{
@@ -276,7 +309,7 @@ int main() {
 		lastLightFrame = currentFrame;
 		process_light_Input(window);
 
-		//glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+		glBindFramebuffer(GL_FRAMEBUFFER, fbo);
 		glEnable(GL_DEPTH_TEST);
 
 		glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
@@ -424,7 +457,7 @@ int main() {
 		glBindVertexArray(lightVAO);
 		glDrawArrays(GL_TRIANGLES, 0, 36);
 		glBindVertexArray(0);
-		/*
+		
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		glDisable(GL_DEPTH_TEST);
 		glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
@@ -435,20 +468,72 @@ int main() {
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, colourTextureAppend);
 		glDrawArrays(GL_TRIANGLES, 0, 6);
-		*/
+
+		
 		glfwSwapBuffers(window);
 
 		glfwPollEvents();
+
+		if (saveCount > 0) {
+			data = new unsigned char[4 * width * height];
+			glPixelStorei(GL_PACK_ALIGNMENT, 4);
+			// OPEN_GL在前颜色缓冲区中渲染 | GL_BACK 在后颜色缓冲区中渲染
+			//glReadBuffer(GL_FRONT);
+			glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, data);
+			saveCount--;
+		}
+
 	}
 
+
+
 	glDeleteVertexArrays(1, &cubeVAO);
+	glDeleteVertexArrays(1, &lightVAO);
+	glDeleteVertexArrays(1, &quadVAO);
 	//glDeleteVertexArrays(1, &lightVAO);
 	glDeleteBuffers(1, &VBO);
+	glDeleteBuffers(1, &quadVBO);
+	glDeleteRenderbuffers(1, &rbo);
+	glDeleteFramebuffers(1, &fbo);
 
 	glfwTerminate();
 	return 1;
 }
 
+/* BMP图片保存 支持RGB数据，木有A哈 */
+void saveToImage(char *data,int width,int height) {
+	const int colorBufferSize = width * height * sizeof(char) * 3;
+
+	BitmapFileHeader fileHeader;
+	fileHeader.bfType = 0X4D42; // BM的16进制
+	fileHeader.bfReserved1 = 0;
+	fileHeader.bfReserved2 = 0;
+	fileHeader.bfOffBits = sizeof(BitmapFileHeader) + sizeof(BitmapInfoHeader);
+	fileHeader.bfSize = fileHeader.bfOffBits + colorBufferSize;
+
+	BitmapInfoHeader infoHeader;
+	infoHeader.biSize = sizeof(BitmapInfoHeader);
+	infoHeader.biWidth = width;
+	infoHeader.biHeight = height;
+	infoHeader.biPanels = 1;
+	infoHeader.biBitCount = 24;
+	infoHeader.biCompression = 0;
+	infoHeader.biSizeImage = colorBufferSize;
+
+
+	std::string fileName = "outImage.png";
+	FILE *imageFile;
+	fopen_s(&imageFile, fileName.c_str(), "wb");
+	fwrite(&fileHeader, sizeof(BitmapFileHeader), 1, imageFile);
+	fwrite(&infoHeader, sizeof(BitmapInfoHeader), 1, imageFile);
+	fwrite(data, colorBufferSize, 1, imageFile);
+
+	fclose(imageFile);
+
+	/*
+	FILE *imageFile = fopen(fileName.c_str(), "w");
+	fprintf(imageFile, ); */
+}
 
 
 void mouse_light_callback(GLFWwindow *window, double xposIn, double yposIn) {
@@ -495,6 +580,8 @@ void mouse_light_callback(GLFWwindow *window, double xposIn, double yposIn) {
 
 }
 
+int saveCount = 0;
+
 void process_light_Input(GLFWwindow *window)
 {
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
@@ -508,6 +595,7 @@ void process_light_Input(GLFWwindow *window)
 	}
 	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
 		std::cout << "按键S" << std::endl;
+		saveCount++;
 		cameraLightPos -= cameraSpeed * cameraLightFront;
 	}
 	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
