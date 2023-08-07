@@ -259,8 +259,8 @@ int main() {
 	glGenTextures(1, &colourTextureAppend);
 	glBindTexture(GL_TEXTURE_2D, colourTextureAppend);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	//GL_COLOR_ATTACHMENT0 代表要绑定的是色彩附件 也可以板顶深度或者模板信息附件啥的（不过一般不用这种方式）
 	//glBindTexture(GL_TEXTURE_2D, 0); //解绑Texture
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colourTextureAppend, 0);
@@ -478,7 +478,7 @@ int main() {
 
 		glfwPollEvents();
 
-	/*	if (saveCount > 0) {
+		if (saveCount > 0) {
 			std::cout << "准备输出图片" << std::endl;
 			imageData = new unsigned char[4 * width * height];
 			glPixelStorei(GL_PACK_ALIGNMENT, 4);
@@ -487,7 +487,7 @@ int main() {
 			glReadPixels(0, 0, width, height, GL_BGR, GL_UNSIGNED_BYTE, imageData);
 			saveToImage(imageData,width,height);
 			saveCount--;
-		}*/
+		}
 	}
 
 
@@ -509,6 +509,8 @@ int main() {
 void saveToImage(unsigned char* data,int width,int height) {
 	const int colorBufferSize = width * height * sizeof(char) * 3;
 
+	std::cout << "wdith = " << width << " , height = " << height << "" << std::endl;
+	
 	BitmapFileHeader fileHeader;
 	fileHeader.bfType = 0X4D42; // BM的16进制
 	fileHeader.bfReserved1 = 0;
