@@ -536,7 +536,6 @@ void saveToImage(unsigned char* data,int width,int height) {
 	fwrite(data, colorBufferSize, 1, imageFile);
 
 	fclose(imageFile);
-
 	/*
 	FILE *imageFile = fopen(fileName.c_str(), "w");
 	fprintf(imageFile, ); */
