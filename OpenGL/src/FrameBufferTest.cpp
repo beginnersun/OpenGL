@@ -16,6 +16,7 @@
 #include <gtc/matrix_transform.hpp>
 #include <gtc/type_ptr.hpp>
 
+#pragma pack(2) //影响对齐，参考结构体内存空间分配规则 
 
 glm::vec3 cameraLightPos = glm::vec3(0.0f, 0.0f, 3.0f);
 glm::vec3 cameraLightFront = glm::vec3(0.0f, 0.0f, -1.0f);
@@ -25,7 +26,10 @@ glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
 //glm::vec3 lightPos(1.2f, 0.0f, 2.0f);
 void mouse_light_callback(GLFWwindow* window, double xpos, double ypos);
 void process_light_Input(GLFWwindow *window);
+void saveToImage(unsigned char* data, int width, int height);
 //unsigned int loadImage(const char *path);
+
+int saveCount = 0;
 
 float deltaLightTime = 0.0f;
 float lastLightFrame = 0.0f;
@@ -300,7 +304,7 @@ int main() {
 		glm::vec3(0.0f,0.0f,-3.0f)
 	};
 
-	unsigned char *data = NULL;
+	unsigned char *imageData = NULL;
 
 	while (!glfwWindowShouldClose(window))
 	{
@@ -474,15 +478,16 @@ int main() {
 
 		glfwPollEvents();
 
-		if (saveCount > 0) {
-			data = new unsigned char[4 * width * height];
+	/*	if (saveCount > 0) {
+			std::cout << "准备输出图片" << std::endl;
+			imageData = new unsigned char[4 * width * height];
 			glPixelStorei(GL_PACK_ALIGNMENT, 4);
 			// OPEN_GL在前颜色缓冲区中渲染 | GL_BACK 在后颜色缓冲区中渲染
 			//glReadBuffer(GL_FRONT);
-			glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, data);
+			glReadPixels(0, 0, width, height, GL_BGR, GL_UNSIGNED_BYTE, imageData);
+			saveToImage(imageData,width,height);
 			saveCount--;
-		}
-
+		}*/
 	}
 
 
@@ -501,7 +506,7 @@ int main() {
 }
 
 /* BMP图片保存 支持RGB数据，木有A哈 */
-void saveToImage(char *data,int width,int height) {
+void saveToImage(unsigned char* data,int width,int height) {
 	const int colorBufferSize = width * height * sizeof(char) * 3;
 
 	BitmapFileHeader fileHeader;
@@ -521,7 +526,7 @@ void saveToImage(char *data,int width,int height) {
 	infoHeader.biSizeImage = colorBufferSize;
 
 
-	std::string fileName = "outImage.png";
+	std::string fileName = "res/image/outImage.png";
 	FILE *imageFile;
 	fopen_s(&imageFile, fileName.c_str(), "wb");
 	fwrite(&fileHeader, sizeof(BitmapFileHeader), 1, imageFile);
@@ -579,8 +584,6 @@ void mouse_light_callback(GLFWwindow *window, double xposIn, double yposIn) {
 
 
 }
-
-int saveCount = 0;
 
 void process_light_Input(GLFWwindow *window)
 {
