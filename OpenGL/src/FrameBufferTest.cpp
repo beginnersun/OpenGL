@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include "FrameBufferTest.h"
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
@@ -17,6 +18,22 @@
 #include <gtc/type_ptr.hpp>
 
 #pragma pack(2) //影响对齐，参考结构体内存空间分配规则 
+
+
+//fread函数 读取int等类型数据时按照小端序读取  正常int解析数据按照大端序读取
+//所以在读取到值之后需要对大小端序进行转换 
+unsigned long OnChangeByteOrder(int indata)
+{
+	unsigned char *c = (unsigned char*)&indata;
+	int sum = 0;
+	for (int i = 0; i < sizeof(int); i++)
+	{
+		sum += (*(c + i) << ((sizeof(int) - 1 - i) * 8));
+	}
+	//printf("转序后的结果 : %d \n",sum);
+	return sum;
+}
+
 
 glm::vec3 cameraLightPos = glm::vec3(0.0f, 0.0f, 3.0f);
 glm::vec3 cameraLightFront = glm::vec3(0.0f, 0.0f, -1.0f);
@@ -69,7 +86,7 @@ struct BitmapInfoHeader {
 	DWord biClrImportant; //重要调色板索引数 0 所有都重要
 };
 
-int main() {
+int main_framebuffer() {
 
 	GLFWwindow *window;
 
@@ -85,6 +102,9 @@ int main() {
 		glfwTerminate();
 		return -1;
 	}
+
+
+
 
 	glfwMakeContextCurrent(window);
 	glfwSetCursorPosCallback(window, mouse_light_callback);
@@ -250,7 +270,9 @@ int main() {
 	Shader cubeShader = Shader("res/shaders/cube_vs.shader", "res/shaders/cube_fs.shader");  //这个对应的其实是光源的着色器
 	Shader screenShader = Shader("res/shaders/texture/texture_vs.shader", "res/shaders/texture/texture_fs.shader");
 
-	
+	width = 800;
+	height = 600;
+
 	unsigned int fbo;
 	glGenFramebuffers(1, &fbo);
 	glBindFramebuffer(GL_FRAMEBUFFER, fbo);
@@ -305,6 +327,7 @@ int main() {
 	};
 
 	unsigned char *imageData = NULL;
+
 
 	while (!glfwWindowShouldClose(window))
 	{
@@ -522,13 +545,14 @@ void saveToImage(unsigned char* data,int width,int height) {
 	infoHeader.biSize = sizeof(BitmapInfoHeader);
 	infoHeader.biWidth = width;
 	infoHeader.biHeight = height;
+	std::cout << "wdith = " << infoHeader.biWidth << " , height = " << infoHeader.biHeight << "" << std::endl;
 	infoHeader.biPanels = 1;
 	infoHeader.biBitCount = 24;
 	infoHeader.biCompression = 0;
 	infoHeader.biSizeImage = colorBufferSize;
 
 
-	std::string fileName = "res/image/outImage.png";
+	std::string fileName = "res/image/outImage.bmp";
 	FILE *imageFile;
 	fopen_s(&imageFile, fileName.c_str(), "wb");
 	fwrite(&fileHeader, sizeof(BitmapFileHeader), 1, imageFile);
@@ -536,6 +560,7 @@ void saveToImage(unsigned char* data,int width,int height) {
 	fwrite(data, colorBufferSize, 1, imageFile);
 
 	fclose(imageFile);
+
 	/*
 	FILE *imageFile = fopen(fileName.c_str(), "w");
 	fprintf(imageFile, ); */

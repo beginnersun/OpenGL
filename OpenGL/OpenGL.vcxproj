@@ -154,9 +154,10 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\cubeMap.cpp" />
     <ClCompile Include="src\FrameBufferTest.cpp" />
+    <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\Mesh.cpp" />
-    <ClCompile Include="src\Calculate.cpp" />
     <ClCompile Include="src\AssimpMesh.cpp" />
     <ClCompile Include="src\GLTextureImage.cpp" />
     <ClCompile Include="src\CoordinateSystem.cpp" />
@@ -218,8 +219,10 @@
     <Image Include="res\model\backpack\leg_showroom_spec.png" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\cubeMap.h" />
     <ClInclude Include="src\Camera.h" />
     <ClInclude Include="src\FileSystem.h" />
+    <ClInclude Include="src\FrameBufferTest.h" />
     <ClInclude Include="src\Mesh.h" />
     <ClInclude Include="src\GLTextureImage.h" />
     <ClInclude Include="src\Model.h" />
