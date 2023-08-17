@@ -1,8 +1,9 @@
 #include "FrameBufferTest.h"
-
+#include "cubeMap.h"
 
 int main() {
-	main_framebuffer();
+	//main_framebuffer();
+	main_cubemap();
 	return 1;
 }
 

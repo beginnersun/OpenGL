@@ -266,6 +266,8 @@ int main_framebuffer() {
 	GLTextureImage specularTexture = GLTextureImage("res/image/lighting_maps_specular_color.png");
 	GLTextureImage emissionTexture = GLTextureImage("res/image/matrix.jpg");
 
+	std::cout << "emissionTexture.id = " << emissionTexture.textureId << std::endl;
+
 	Shader lightingShader = Shader("res/shaders/light_diffuse_map_vs.shader", "res/shaders/light_diffuse_map_fs.shader"); //对应被照亮的物体的着色器
 	Shader cubeShader = Shader("res/shaders/cube_vs.shader", "res/shaders/cube_fs.shader");  //这个对应的其实是光源的着色器
 	Shader screenShader = Shader("res/shaders/texture/texture_vs.shader", "res/shaders/texture/texture_fs.shader");
@@ -618,6 +620,9 @@ void process_light_Input(GLFWwindow *window)
 
 	float cameraSpeed = 2.5f * deltaLightTime;
 
+
+	std::cout << "修改前 ： x = " << cameraLightPos.x << " , y = " << cameraLightPos.y << " , z = " << cameraLightPos.z << std::endl;
+
 	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
 		std::cout << "按键W" << std::endl;
 		cameraLightPos += cameraSpeed * cameraLightFront;
@@ -635,5 +640,7 @@ void process_light_Input(GLFWwindow *window)
 		std::cout << "按键D" << std::endl;
 		cameraLightPos += glm::normalize(glm::cross(cameraLightFront, cameraLightUp)) * cameraSpeed;
 	}
+
+	std::cout << "修改后 ： x = " << cameraLightPos.x << " , y = " << cameraLightPos.y << " , z = " << cameraLightPos.z << std::endl;
 
 }

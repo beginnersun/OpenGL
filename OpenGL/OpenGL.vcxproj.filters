@@ -69,6 +69,10 @@
     <None Include="res\model\backpack\nanosuit.pkg" />
     <None Include="res\shaders\texture\texture_fs.shader" />
     <None Include="res\shaders\texture\texture_vs.shader" />
+    <None Include="res\shaders\sky\sky_fs.shader" />
+    <None Include="res\shaders\sky\sky_vs.shader" />
+    <None Include="res\shaders\sky\cube_vs.shader" />
+    <None Include="res\shaders\sky\cube_fs.shader" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="Debug\image\awesomeface.png">
@@ -150,6 +154,42 @@
       <Filter>资源文件</Filter>
     </Image>
     <Image Include="res\model\backpack\leg_showroom_spec.png">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="..\..\..\..\ChromDownload\skybox\back.jpg">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="..\..\..\..\ChromDownload\skybox\bottom.jpg">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="..\..\..\..\ChromDownload\skybox\front.jpg">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="..\..\..\..\ChromDownload\skybox\left.jpg">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="..\..\..\..\ChromDownload\skybox\right.jpg">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="..\..\..\..\ChromDownload\skybox\top.jpg">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\image\skybox\back.jpg">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\image\skybox\bottom.jpg">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\image\skybox\front.jpg">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\image\skybox\left.jpg">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\image\skybox\right.jpg">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\image\skybox\top.jpg">
       <Filter>资源文件</Filter>
     </Image>
   </ItemGroup>
