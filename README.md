@@ -8,3 +8,8 @@ GSLS内建变量
 gl_Position (x,y,z,w) xyz代表三维空间坐标 w在裁剪空间计算时使用（用于确定是否在裁剪区域内）
 gl_PointSize 当渲染图元为点时，可以设置gl_PointSize的大小，从而改变渲染结束后，屏幕上每个点的大小。
 gl_FragCoord (xy,z,w) xy代表坐标 z代表深度，w暂未
+
+gl_FrontFacing 是否为正向面（true为正向面）
+正向面具体教程在面剔除中有讲
+可以利用此变量实现观察物体内部空间纹理（外部空间返回一种纹理color，内部空间使用另一种纹理color)
+gl_FragDepth 深度值（没有特殊操作会自己读取gl_Position.z中的值) 
