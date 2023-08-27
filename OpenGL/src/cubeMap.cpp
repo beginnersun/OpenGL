@@ -327,7 +327,14 @@ int loadSkyMaps(std::vector<std::string> images) {
 
 	int imageWidth, imageHeight, nrChannels;
 	unsigned char *data;
-
+	/*
+		GL_TEXTURE_CUBE_MAP_POSITIVE_X                 右
+		GL_TEXTURE_CUBE_MAP_NEGATIVE_X                 左
+		GL_TEXTURE_CUBE_MAP_POSITIVE_Y                 上
+		GL_TEXTURE_CUBE_MAP_NEGATIVE_Y                 下
+		GL_TEXTURE_CUBE_MAP_POSITIVE_Z                 后
+		GL_TEXTURE_CUBE_MAP_NEGATIVE_Z                 前
+	*/
 	for (unsigned int i = 0; i < images.size(); i++)
 	{
 		data = stbi_load(images[i].c_str(), &imageWidth, &imageHeight, &nrChannels, 0);

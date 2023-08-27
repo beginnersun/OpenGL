@@ -1,9 +1,11 @@
 #include "FrameBufferTest.h"
 #include "cubeMap.h"
+#include "SensorGLSL.h"
 
 int main() {
 	//main_framebuffer();
-	main_cubemap();
+	//main_cubemap();
+	main_senior();
 	return 1;
 }
 

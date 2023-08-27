@@ -154,6 +154,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\basegl\Render.cpp" />
     <ClCompile Include="src\cubeMap.cpp" />
     <ClCompile Include="src\FrameBufferTest.cpp" />
     <ClCompile Include="src\main.cpp" />
@@ -162,6 +163,7 @@
     <ClCompile Include="src\GLTextureImage.cpp" />
     <ClCompile Include="src\CoordinateSystem.cpp" />
     <ClCompile Include="src\Model.cpp" />
+    <ClCompile Include="src\SensorGLSL.cpp" />
     <ClCompile Include="src\Shader.cpp" />
     <ClCompile Include="src\Application.cpp" />
   </ItemGroup>
@@ -170,6 +172,10 @@
     <None Include="res\model\backpack\nanosuit.mtl" />
     <None Include="res\model\backpack\nanosuit.pkg" />
     <None Include="res\shaders\Basic.shader" />
+    <None Include="res\shaders\point\fragCoord_fs.shader" />
+    <None Include="res\shaders\point\fragCoord_vs.shader" />
+    <None Include="res\shaders\point\point_fs.shader" />
+    <None Include="res\shaders\point\point_vs.shader" />
     <None Include="res\shaders\sky\cube_fs.shader" />
     <None Include="res\shaders\sky\cube_vs.shader" />
     <None Include="res\shaders\sky\sky_fs.shader" />
@@ -235,6 +241,8 @@
     <Image Include="res\model\backpack\leg_showroom_spec.png" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\basegl\Render.h" />
+    <ClInclude Include="src\basegl\BaseGL.h" />
     <ClInclude Include="src\cubeMap.h" />
     <ClInclude Include="src\Camera.h" />
     <ClInclude Include="src\FileSystem.h" />
@@ -242,6 +250,7 @@
     <ClInclude Include="src\Mesh.h" />
     <ClInclude Include="src\GLTextureImage.h" />
     <ClInclude Include="src\Model.h" />
+    <ClInclude Include="src\SensorGLSL.h" />
     <ClInclude Include="src\Shader.h" />
     <ClInclude Include="src\标头.h" />
   </ItemGroup>
