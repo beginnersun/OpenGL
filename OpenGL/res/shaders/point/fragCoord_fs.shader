@@ -1,20 +1,22 @@
 #version 330 core
 out vec4 FragColor;
 
-in vec2 TexCoords;
+in VS_OUT{
+	vec2 TexCoords;
+}fs_in;
 
 uniform sampler2D boxTextureOut;
 uniform sampler2D boxTextureIn;
 
 void main() {
-	/*if (gl_FragCoord.x < 400.0) {
-		FragColor = texture(boxTextureOut, TexCoords);
-	} else {*/
+	if (gl_FragCoord.x < 500) {
+		FragColor = texture(boxTextureOut, fs_in.TexCoords);
+	} else {
 		if (gl_FrontFacing) {
-			FragColor = texture(boxTextureOut, TexCoords);
+			FragColor = texture(boxTextureOut, fs_in.TexCoords);
 		}
 		else {
-			FragColor = texture(boxTextureIn, TexCoords);
+			FragColor = texture(boxTextureIn, fs_in.TexCoords);
 		}
-	//}
+	}
 }

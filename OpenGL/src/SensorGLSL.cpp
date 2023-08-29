@@ -243,8 +243,45 @@ int main_senior() {
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void *)sizeof(points));
 	glEnableVertexAttribArray(1);
 
+	float line_points[] = {
+		-0.5f,	0.5f,
+		0.5f,	0.5f,
+		0.5f,	-0.5f,
+		-0.5f,	-0.5f
+	};
+	unsigned int linePointVAO, linePointVBO;
+	glGenVertexArrays(1, &linePointVAO);
+	glGenBuffers(1, &linePointVBO);
+
+	glBindVertexArray(linePointVAO);
+	glBindBuffer(GL_ARRAY_BUFFER, linePointVBO);
+
+	glBufferData(GL_ARRAY_BUFFER, sizeof(line_points), &line_points, GL_STATIC_DRAW);
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(0);
+
+
 	Shader pointShader = Shader("res/shaders/point/point_vs.shader", "res/shaders/point/point_fs.shader");
 	Shader cubeShader = Shader("res/shaders/point/fragCoord_vs.shader", "res/shaders/point/fragCoord_fs.shader");
+	Shader linePointShader = Shader("res/shaders/point/point_polygon_vs.shader", "res/shaders/point/point_polygon_gs.shader", "res/shaders/point/point_polygon_fs.shader");
+
+/*  OpenGL 4.2之后可以不用指定uniform块id  直接着色器缓冲块中指定binding=id
+	unsigned int pointId = glGetUniformBlockIndex(pointShader.ID, "Matrices");
+	unsigned int cubeId = glGetUniformBlockIndex(cubeShader.ID, "Matrices");
+	glUniformBlockBinding(pointShader.ID, pointId, 0);
+	glUniformBlockBinding(cubeShader.ID, cubeId, 0);*/
+
+	unsigned int uboExampleBlock;
+	glGenBuffers(1, &uboExampleBlock);
+	glBindBuffer(GL_UNIFORM_BUFFER, uboExampleBlock);
+	glBufferData(GL_UNIFORM_BUFFER, 2 * sizeof(glm::mat4), NULL, GL_STATIC_DRAW);
+	glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+	//0 对应着色其中 binding指定的下标 uboExampleBlock表示从此缓冲对象中取数据 0是缓冲对象内存地址的偏移量 32代表偏移量后32位
+	glBindBufferRange(GL_UNIFORM_BUFFER, 0, uboExampleBlock, 0, 2 * sizeof(glm::mat4));
+	glm::mat4 projection = glm::perspective(glm::radians(45.0f), 800.0f / 800.0f, 0.1f, 100.0f);
+	glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), glm::value_ptr(projection));
+	glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 	pointShader.use();
 	cubeShader.use();
@@ -255,6 +292,8 @@ int main_senior() {
 	cubeShader.setInt("boxTextureOut", 0);
 	cubeShader.setInt("boxTextureIn", 1);
 
+	std::cout << "out.id = " << cubeImageTexture.textureId << " ; in.id = " << cubeInImageTexture.textureId << std::endl;
+
 	while (!glfwWindowShouldClose(window))
 	{
 		float currentFrame = static_cast<float>(glfwGetTime());
@@ -263,31 +302,33 @@ int main_senior() {
 
 		process_senior_light_Input(window);
 
-		glm::mat4 model = glm::mat4(1.0f);
-		glm::mat4 projection = glm::perspective(glm::radians(45.0f), 800.0f / 600.0f, 0.1f, 100.0f);
-		glm::mat4 view = glm::mat4(1.0f);
-		view = glm::lookAt(cameraSeniorConstant.cameraLightPos, cameraSeniorConstant.cameraLightPos + cameraSeniorConstant.cameraLightFront, cameraSeniorConstant.cameraLightUp);
-
 		glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+		glm::mat4 model = glm::mat4(1.0f);
+		glm::mat4 view = glm::mat4(1.0f);
+		view = glm::lookAt(cameraSeniorConstant.cameraLightPos, cameraSeniorConstant.cameraLightPos + cameraSeniorConstant.cameraLightFront, cameraSeniorConstant.cameraLightUp);
+		glBindBuffer(GL_UNIFORM_BUFFER, uboExampleBlock);
+		glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(view));
+		glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
 		pointShader.use();
 		pointShader.setMat4("model", model);
-		pointShader.setMat4("view", view);
-		pointShader.setMat4("projection", projection);
 		glBindVertexArray(pVAO);
 		glDrawArrays(GL_POINTS, 0, 36);
 
 		cubeShader.use();
 		cubeShader.setMat4("model", model);
-		cubeShader.setMat4("view", view);
-		cubeShader.setMat4("projection", projection);
 		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE, cubeImageTexture.textureId);
+		glBindTexture(GL_TEXTURE_2D, cubeImageTexture.textureId);
 		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE1, cubeInImageTexture.textureId);
+		glBindTexture(GL_TEXTURE_2D, cubeInImageTexture.textureId);
 		glBindVertexArray(cubeVAO);
 		glDrawArrays(GL_TRIANGLES, 0, 36);
+
+		linePointShader.use();
+		glBindVertexArray(linePointVAO);
+		glDrawArrays(GL_POINTS, 0, 4);
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();

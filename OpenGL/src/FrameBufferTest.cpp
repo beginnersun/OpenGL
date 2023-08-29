@@ -124,7 +124,7 @@ int main_framebuffer() {
 		std::cout << "Error !" << std::endl;
 	}
 
-	std::cout << glGetString(GL_VERSION) << std::endl;
+	std::cout << "°æ±¾ºÅ£º" << glGetString(GL_VERSION) << std::endl;
 
 	//glEnable(GL_DEPTH_TEST);
 
@@ -275,6 +275,7 @@ int main_framebuffer() {
 	width = 800;
 	height = 600;
 
+	//Ö¡»º³å
 	unsigned int fbo;
 	glGenFramebuffers(1, &fbo);
 	glBindFramebuffer(GL_FRAMEBUFFER, fbo);
