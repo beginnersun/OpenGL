@@ -175,6 +175,7 @@
     <None Include="res\shaders\point\fragCoord_fs.shader" />
     <None Include="res\shaders\point\fragCoord_vs.shader" />
     <None Include="res\shaders\point\point_fs.shader" />
+    <None Include="res\shaders\point\point_polygon_explode_gs.shader" />
     <None Include="res\shaders\point\point_polygon_fs.shader" />
     <None Include="res\shaders\point\point_polygon_gs.shader" />
     <None Include="res\shaders\point\point_polygon_vs.shader" />

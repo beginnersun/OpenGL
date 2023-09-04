@@ -262,7 +262,7 @@ int main_senior() {
 
 
 	Shader pointShader = Shader("res/shaders/point/point_vs.shader", "res/shaders/point/point_fs.shader");
-	Shader cubeShader = Shader("res/shaders/point/fragCoord_vs.shader", "res/shaders/point/fragCoord_fs.shader");
+	Shader cubeShader = Shader("res/shaders/point/fragCoord_vs.shader", "res/shaders/point/point_polygon_explode_gs.shader", "res/shaders/point/fragCoord_fs.shader");
 	Shader linePointShader = Shader("res/shaders/point/point_polygon_vs.shader", "res/shaders/point/point_polygon_gs.shader", "res/shaders/point/point_polygon_fs.shader");
 
 /*  OpenGL 4.2之后可以不用指定uniform块id  直接着色器缓冲块中指定binding=id
@@ -324,6 +324,7 @@ int main_senior() {
 		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(GL_TEXTURE_2D, cubeInImageTexture.textureId);
 		glBindVertexArray(cubeVAO);
+		cubeShader.setFloat("time", static_cast<float>(glfwGetTime()));
 		glDrawArrays(GL_TRIANGLES, 0, 36);
 
 		linePointShader.use();

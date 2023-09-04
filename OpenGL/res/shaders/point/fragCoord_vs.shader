@@ -25,7 +25,7 @@ layout(std140, binding = 0) uniform Matrices
 
 out VS_OUT
 {
-	vec2 TexCoords;
+	vec2 texCoords;
 }vs_out;
 
 
@@ -34,6 +34,6 @@ uniform mat4 model;
 //uniform mat4 projection;
 
 void main(){
-	vs_out.TexCoords = aTexCoords;
+	vs_out.texCoords = aTexCoords;
 	gl_Position = projection * view * model * vec4(aPos, 1.0);
 }
