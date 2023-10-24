@@ -50,6 +50,19 @@ void Mesh::setupMesh() {
 	glEnableVertexAttribArray(2);
 	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, TexCoord));
 
+	glEnableVertexAttribArray(3);
+	glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, Tangent));
+	// vertex bitangent
+	glEnableVertexAttribArray(4);
+	glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, Bitangent));
+	// ids
+	glEnableVertexAttribArray(5);
+	glVertexAttribIPointer(5, 4, GL_INT, sizeof(Vertex), (void*)offsetof(Vertex, m_BoneIDs));
+
+	// weights
+	glEnableVertexAttribArray(6);
+	glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, m_Weights));
+
 	glBindVertexArray(0);
 
 }
@@ -57,6 +70,9 @@ void Mesh::setupMesh() {
 void Mesh::Draw(Shader shader) {
 	unsigned int diffuseNr = 1;
 	unsigned int specularNr = 1;
+
+	unsigned int normalNr = 1;
+	unsigned int heightNr = 1;
 	//由于着色器不清楚有多少个纹理。所以，约定好每个纹理命名为texture_diffuseN(N代表第几个) 与 texture_specularN 漫反射纹理与镜面反射纹理两种约定完毕
 	for (unsigned int i = 0; i < textures.size(); i++)
 	{
@@ -72,28 +88,40 @@ void Mesh::Draw(Shader shader) {
 		{
 			number = std::to_string(specularNr++);
 		}
+		else if (name == "texture_normal")
+		{
+			number = std::to_string(normalNr++);
+		}
+		else if (name == "texture_height")
+		{
+			number = std::to_string(heightNr++);
+		}
 
-		shader.setFloat(("material." + name + number).c_str(), i);
+		//shader.setFloat(("material." + name + number).c_str(), i);
+		shader.setInt((name + number).c_str(),i);
+
 		glBindTexture(GL_TEXTURE_2D, textures[i].id);
 	}
-	glActiveTexture(GL_TEXTURE0);
 
 	//绘制网络
 	glBindVertexArray(VAO);
 	glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
 	glBindVertexArray(0);
-}
 
+	glActiveTexture(GL_TEXTURE0);
+}
 
 
 void Model::loadModel(string path) {
 	Assimp::Importer import;
-	const aiScene *scene = import.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs);
+	const aiScene *scene = import.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace);
+	std::cout << "输出模型1" << std::endl;
 	if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
 	{
 		cout << "ERROR::ASSIMP:" << import.GetErrorString() << endl;
 		return;
 	}
+	std::cout << "输出模型" << std::endl;
 	directory = path.substr(0, path.find_last_of('/'));
 	processNode(scene->mRootNode, scene);
 }
@@ -126,21 +154,34 @@ Mesh Model::processMesh(aiMesh *mesh, const aiScene *scene) {
 		vector.z = mesh->mVertices[i].z;
 		vertex.Position = vector;
 
-		vertices.push_back(vertex);
-
-		glm::vec3 normal;
-		normal.x = mesh->mNormals[i].x;
-		normal.y = mesh->mNormals[i].y;
-		normal.z = mesh->mNormals[i].z;
-		vertex.Normal = normal;
-
-		glm::vec2 texCoords = glm::vec2(0.0f, 0.0f);
+		if (mesh->HasNormals())
+		{
+			vector.x = mesh->mNormals[i].x;
+			vector.y = mesh->mNormals[i].y;
+			vector.z = mesh->mNormals[i].z;
+			vertex.Normal = vector;
+		}
 		if (mesh->mTextureCoords[0])
 		{
-			texCoords.x = mesh->mTextureCoords[0][i].x;
-			texCoords.y = mesh->mTextureCoords[0][i].y;
-			vertex.TexCoord = texCoords;
+			glm::vec2 vec;
+			vec.x = mesh->mTextureCoords[0][i].x;
+			vec.y = mesh->mTextureCoords[0][i].y;
+			vertex.TexCoord = vec;
+
+			vector.x = mesh->mTangents[i].x;
+			vector.y = mesh->mTangents[i].y;
+			vector.z = mesh->mTangents[i].z;
+			vertex.Tangent = vector;
+
+			vector.x = mesh->mBitangents[i].x;
+			vector.y = mesh->mBitangents[i].y;
+			vector.z = mesh->mBitangents[i].z;
+			vertex.Bitangent = vector;
 		}
+		else {
+			vertex.TexCoord = glm::vec2(0.0f, 0.0f);
+		}
+		vertices.push_back(vertex);
 
 	}
 
@@ -153,6 +194,23 @@ Mesh Model::processMesh(aiMesh *mesh, const aiScene *scene) {
 		}
 	}
 
+	aiMaterial *material = scene->mMaterials[mesh->mMaterialIndex];
+	
+	vector<Texture> diffuseMaps = loadMaterialTextures(material, aiTextureType_DIFFUSE, "texture_diffuse");
+	textures.insert(textures.end(), diffuseMaps.begin(), diffuseMaps.end());
+
+	vector<Texture> specularMaps = loadMaterialTextures(material, aiTextureType_SPECULAR, "texture_specular");
+	textures.insert(textures.end(), specularMaps.begin(), specularMaps.end());
+
+	vector<Texture> normalMaps = loadMaterialTextures(material, aiTextureType_HEIGHT, "texture_normal");
+	textures.insert(textures.end(), normalMaps.begin(), normalMaps.end());
+
+	vector<Texture> heightMaps = loadMaterialTextures(material, aiTextureType_AMBIENT, "texture_height");
+	textures.insert(textures.end(), heightMaps.begin(), heightMaps.end());
+
+
+	
+	/*
 	if (mesh->mMaterialIndex >= 0)
 	{
 		aiMaterial *material = scene->mMaterials[mesh->mMaterialIndex];
@@ -162,7 +220,7 @@ Mesh Model::processMesh(aiMesh *mesh, const aiScene *scene) {
 		vector<Texture> specularMaps = loadMaterialTextures(material, aiTextureType_SPECULAR, "texture_specular");
 		textures.insert(textures.end(), specularMaps.begin(), specularMaps.end());
 
-	}
+	}*/
 	return Mesh(vertices, indices, textures);
 }
 
@@ -190,6 +248,7 @@ vector<Texture> Model::loadMaterialTextures(aiMaterial *mat, aiTextureType type,
 			texture.type = typeName;
 			texture.path = str.C_Str();
 			textures.push_back(texture);
+			textures_loaded.push_back(texture);
 		}
 
 	}

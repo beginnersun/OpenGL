@@ -30,9 +30,6 @@
     <ClCompile Include="src\AssimpMesh.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="src\Mesh.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="src\Model.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
@@ -49,6 +46,12 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="src\basegl\Render.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="src\asteroid.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="src\TsDecoder.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
@@ -86,6 +89,18 @@
     <None Include="res\shaders\point\point_polygon_vs.shader" />
     <None Include="res\shaders\point\point_polygon_gs.shader" />
     <None Include="res\shaders\point\point_polygon_fs.shader" />
+    <None Include="res\shaders\point\point_polygon_explode_gs.shader" />
+    <None Include="res\shaders\point\normal_visualization_vs.shader" />
+    <None Include="res\shaders\point\normal_visualization_gs.shader" />
+    <None Include="res\shaders\point\normal_visualization_fs.shader" />
+    <None Include="res\shaders\asteroid\model_loading_vs.shader" />
+    <None Include="res\shaders\asteroid\model_loading_fs.shader" />
+    <None Include="res\model\rock\rock.mtl" />
+    <None Include="res\model\rock\planet.mtl" />
+    <None Include="res\shaders\asteroid\model_rock_vs.shader" />
+    <None Include="res\shaders\asteroid\model_rock_fs.shader" />
+    <None Include="C:\Users\ThemSun\Downloads\0" />
+    <None Include="res\file\0" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="Debug\image\awesomeface.png">
@@ -205,15 +220,21 @@
     <Image Include="res\image\skybox\top.jpg">
       <Filter>资源文件</Filter>
     </Image>
+    <Image Include="..\..\..\..\ChromDownload\rock\Rock-Texture-Surface.jpg">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\model\rock\Rock-Texture-Surface.jpg">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\model\rock\planet_Quom1200.png">
+      <Filter>资源文件</Filter>
+    </Image>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Shader.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="src\GLTextureImage.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Mesh.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="src\Model.h">
@@ -241,6 +262,12 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="src\SensorGLSL.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="src\asteroid.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="src\TsDecoder.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

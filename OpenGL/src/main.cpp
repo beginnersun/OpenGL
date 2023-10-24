@@ -1,11 +1,15 @@
 #include "FrameBufferTest.h"
 #include "cubeMap.h"
 #include "SensorGLSL.h"
+#include "asteroid.h"
+#include "TsDecoder.h"
 
 int main() {
 	//main_framebuffer();
 	//main_cubemap();
-	main_senior();
+	//main_senior();
+	main_decode_ts();
+	//main_asteroid();
 	return 1;
 }
 

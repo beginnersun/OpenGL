@@ -55,6 +55,7 @@ int main_senior() {
 		return -1;
 	}
 
+	glfwWindowHint(GLFW_SAMPLES, 4);
 	window = glfwCreateWindow(windowSeniorConstant.screenWidth, windowSeniorConstant.screenHeight, "SeniorTest", NULL, NULL);
 
 	if (!window)
@@ -79,6 +80,7 @@ int main_senior() {
 
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_PROGRAM_POINT_SIZE);
+	glEnable(GL_MULTISAMPLE);
 
 	float points[] = {
 		// positions          
@@ -243,6 +245,10 @@ int main_senior() {
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void *)sizeof(points));
 	glEnableVertexAttribArray(1);
 
+	//次函数用来设置顶点属性的更新时机
+	//2 代表目标为位置为2的顶点属性  1代表 每1个实例更新一次目标顶点属性。 默认为0 代表每次刷新就更新一次。
+	//glVertexAttribDivisor(2, 1);
+
 	float line_points[] = {
 		-0.5f,	0.5f,
 		0.5f,	0.5f,
@@ -260,10 +266,28 @@ int main_senior() {
 	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
 	glEnableVertexAttribArray(0);
 
+	unsigned int N_VAO;
+	unsigned int N_VBO;
+	glGenVertexArrays(1, &N_VAO);
+	glGenBuffers(1, &N_VBO);
+
+	glBindVertexArray(N_VAO);
+	glBindBuffer(GL_ARRAY_BUFFER, N_VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(points) + sizeof(normals), NULL, GL_STATIC_DRAW);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(points), &points);
+	glBufferSubData(GL_ARRAY_BUFFER, sizeof(points), sizeof(normals), &normals);
+
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *)sizeof(points));
+	glEnableVertexAttribArray(1);
 
 	Shader pointShader = Shader("res/shaders/point/point_vs.shader", "res/shaders/point/point_fs.shader");
 	Shader cubeShader = Shader("res/shaders/point/fragCoord_vs.shader", "res/shaders/point/point_polygon_explode_gs.shader", "res/shaders/point/fragCoord_fs.shader");
 	Shader linePointShader = Shader("res/shaders/point/point_polygon_vs.shader", "res/shaders/point/point_polygon_gs.shader", "res/shaders/point/point_polygon_fs.shader");
+	
+	//Shader normalShader = Shader("res/shaders/cube_vs.shader", "res/shaders/cube_fs.shader");
+	Shader normalShader = Shader("res/shaders/point/normal_visualization_vs.shader", "res/shaders/point/normal_visualization_gs.shader", "res/shaders/point/normal_visualization_fs.shader");
 
 /*  OpenGL 4.2之后可以不用指定uniform块id  直接着色器缓冲块中指定binding=id
 	unsigned int pointId = glGetUniformBlockIndex(pointShader.ID, "Matrices");
@@ -311,12 +335,13 @@ int main_senior() {
 		glBindBuffer(GL_UNIFORM_BUFFER, uboExampleBlock);
 		glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(view));
 		glBindBuffer(GL_UNIFORM_BUFFER, 0);
-
+		
 		pointShader.use();
 		pointShader.setMat4("model", model);
 		glBindVertexArray(pVAO);
 		glDrawArrays(GL_POINTS, 0, 36);
 
+		
 		cubeShader.use();
 		cubeShader.setMat4("model", model);
 		glActiveTexture(GL_TEXTURE0);
@@ -325,11 +350,21 @@ int main_senior() {
 		glBindTexture(GL_TEXTURE_2D, cubeInImageTexture.textureId);
 		glBindVertexArray(cubeVAO);
 		cubeShader.setFloat("time", static_cast<float>(glfwGetTime()));
-		glDrawArrays(GL_TRIANGLES, 0, 36);
-
+		glDrawArrays(GL_TRIANGLES, 0, 36); 
+		
+		
 		linePointShader.use();
 		glBindVertexArray(linePointVAO);
 		glDrawArrays(GL_POINTS, 0, 4);
+		
+		glm::mat4 projection1 = glm::perspective(glm::radians(45.0f), 800.0f / 800.0f, 0.1f, 100.0f);
+		normalShader.use();
+		normalShader.setMat4("view", view);
+		normalShader.setMat4("model", model);
+		normalShader.setMat4("projection", projection);
+		glBindVertexArray(N_VAO);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+		
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();

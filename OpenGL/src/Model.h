@@ -7,6 +7,8 @@
 
 #include "assimp/scene.h"           // Output data structure
 
+#define MAX_BONE_INFLUENCE 4
+
 using namespace std;
 /*
  * 顶点数据
@@ -16,6 +18,14 @@ struct Vertex
 	glm::vec3 Position; //位置
 	glm::vec3 Normal; //向量
 	glm::vec2 TexCoord; //纹理坐标
+
+	glm::vec3 Tangent;
+	// bitangent
+	glm::vec3 Bitangent;
+	//bone indexes which will influence this vertex
+	int m_BoneIDs[MAX_BONE_INFLUENCE];
+	//weights from each bone
+	float m_Weights[MAX_BONE_INFLUENCE];
 };
 
 /*
@@ -39,7 +49,7 @@ public:
 	Mesh(vector<Vertex> vertices, vector<unsigned int> indices, vector<Texture> textures);
 	void Draw(Shader shader);
 
-private:
+public:
 	unsigned int VAO, VBO, EBO;
 	void setupMesh();
 };
