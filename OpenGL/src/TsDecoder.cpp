@@ -9,6 +9,10 @@
 #include<string>
 #include<atlstr.h>
 
+#include<map>
+
+using namespace std;
+
 bool isDebug = false;
 
 struct TsHeader {
@@ -23,7 +27,7 @@ struct TsHeader {
 	unsigned short pid; //第二字节后五位+第三字节   id为0 代表后面数据时PAT表  id为1 代表后面数据为CAT表 2 为程序流描述表 0XFFFF 表示空包
 	unsigned char transport_scrambling_control; //第四字节前两位
 	unsigned char adaptation_filed_control; //第四字节3,4位
-	unsigned char continuity_counter; //第四字节 后四位 
+	unsigned char continuity_counter; //第四字节 后四位
 };
 struct PATHeader{
 	unsigned char table_id; //第一个字节 表id
@@ -39,6 +43,7 @@ struct PATHeader{
 	unsigned char last_section_number;		 //第八字节 最后一个分段号 最大分段号
 	//循环读取表格内容
 	struct PATProgramInfo* program_info;
+	int programNum;//循环次数
 	//循环结束
 	unsigned int crc_32;					 //CRC校验 最后载荷四字节
 };
@@ -340,6 +345,7 @@ void detectTsPackageTsPAT(TsPackage *tsPackage) {
 	int num = (patHeader.section_length - 5 - 4) / 4;
 	std::cout << "当前PAT表中有 " << num << " 个PMT表" << std::endl;
 	patHeader.program_info = new PATProgramInfo[num];
+	patHeader.programNum = num;
 	for (int i = 0; i < num; i++)
 	{
 		unsigned short programNumber = byteToShort(data, 1, 16);
@@ -360,6 +366,9 @@ void detectTsPackageTsPAT(TsPackage *tsPackage) {
 	patHeader.crc_32 = byteToInt(data, 1, 32);
 	tsPackage->data = data;
 }
+void detectPackageTsPMT(TsPackage *package) {
+	unsigned char *data = package->data;
+}
 
 int main_decode_ts() {
 	std::string filename = "C:\\Users\\ThemSun\\Downloads\\0";
@@ -378,7 +387,8 @@ int main_decode_ts() {
 		std::cout << "ts File have " << tsCount << " ts package" << std::endl;
 	}
 	TsPackage *tsPackage = (TsPackage *)malloc(tsCount * sizeof(TsPackage));
-	for (int i = 0; i < 10; i++)
+	map<int, TsPackage*> packageMaps;
+	for (int i = 0; i < tsCount; i++)
 	{
 		unsigned char *data = new unsigned char[188];
 		fread(data, 1, 188, m_TsFile_Fp);
@@ -397,8 +407,31 @@ int main_decode_ts() {
 			detectTsPackageTsPAT(tsPackage);
 		}
 		std::cout << std::endl;
+		packageMaps[tsPackage->headr.pid] = tsPackage;
 		tsPackage++;
 	}
 	fclose(m_TsFile_Fp);
+	TsPackage *rootPackage = packageMaps[0];
+	if (rootPackage == NULL)
+	{
+		cout << "root结点未找到" << endl;
+		return -1;
+	}
+	rootPackage->pat.programNum;
+	PATProgramInfo *info = rootPackage->pat.program_info;
+	for (int index = 0; index < rootPackage->pat.programNum; index++)
+	{
+		bool isNid = info->program_number == 0;
+		if (isNid)
+		{
+			
+		}
+		else {
+			cout << "PMT pid = " << info->program_map_PID << endl;
+			TsPackage *pmtPackage = packageMaps[info->program_map_PID];
+			detectTsPackageTsPAT(pmtPackage);
+		}
+	}
+
 	return 0;
 }
