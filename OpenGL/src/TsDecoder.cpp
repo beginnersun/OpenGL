@@ -91,12 +91,7 @@ struct PMTHeader{
 	unsigned char reserved_4;				 //第十一字节 前四位 保留位
 	unsigned short program_info_length;		 //第十一后四位 + 第十二字节 
 	//循环开始
-	unsigned char stream_type;               //第N次循环的 1字节 表明流的编码格式 如果为0x1B 表明为H256格式 为PES流
-	//：MPEG1视频，0x02：MPEG2视频，0x03:MPEG1音频，0x04：MPEG2音频，0x05：私有字段，0x06：含有私有数据的PES包 ...
-	unsigned char reserved_5;					 //第N次循环的 2字节前三位 保留位
-	unsigned short elementary_pid;			 //第N次循环的 2字节后五位 + 3字节 包含此PES流的PID值
-	unsigned char reserved_6;					 //第N次循环的 4字节前四位 保留位
-	unsigned short es_info_length;			 //第N次循环的 4字节后四位 + 5字节 表明后续ES流描述的相关字节数
+	PMTPESDataInfo *pes_Infos;
 	//循环结束
 	unsigned int crc_32;					 //CRC校验 四字节
 };
@@ -123,6 +118,16 @@ struct PMTHeader{
 // E1 01 重新分组 reserved = 111 保留位 elementary_pid = 0000100000001 = 257 表明包含流数据的包的PID = 257
 // F0 00 重新分组 reserved = 1111 保留位 000000000000 = es_info_length 表明后续流相关字节数位 = 0 接下来跳过0字节
 // 2F 44 B9 9B crc_32校验
+struct PMTPESDataInfo
+{
+	unsigned char stream_type;               //第N次循环的 1字节 表明流的编码格式 如果为0x1B 表明为H256格式 为PES流
+	//：MPEG1视频，0x02：MPEG2视频，0x03:MPEG1音频，0x04：MPEG2音频，0x05：私有字段，0x06：含有私有数据的PES包 ...
+	unsigned char reserved_5;					 //第N次循环的 2字节前三位 保留位
+	unsigned short elementary_pid;			 //第N次循环的 2字节后五位 + 3字节 包含此PES流的PID值
+	unsigned char reserved_6;					 //第N次循环的 4字节前四位 保留位
+	unsigned short es_info_length;			 //第N次循环的 4字节后四位 + 5字节 表明后续ES流描述的相关字节数
+};
+
 struct TsPackageData
 {
 	unsigned char data[188];
@@ -368,6 +373,28 @@ void detectTsPackageTsPAT(TsPackage *tsPackage) {
 }
 void detectPackageTsPMT(TsPackage *package) {
 	unsigned char *data = package->data;
+	PMTHeader header;
+	header.table_id = *data;
+	data++;
+	header.section_synatx_indication = byteToChar(data, 1, 1);
+	header.zero = byteToChar(data, 2, 1);
+	header.reserved_1 = byteToChar(data, 3, 2);
+	header.section_length = byteToShort(data, 5, 12);
+	header.program_number = byteToShort(data, 1, 16);
+	header.reserved_2 = byteToChar(data, 1, 2);
+	header.version_number = byteToChar(data, 3, 5);
+	header.current_next_indicator = byteToChar(data, 8, 1);
+	data++;
+	header.section_number = byteToChar(data, 1, 8);
+	data++;
+	header.last_section_number = byteToChar(data, 1, 8);
+	data++;
+	header.reserved_3 = byteToChar(data, 1, 3);
+	header.PCR_PID = byteToShort(data, 4, 13);
+	header.reserved_4 = byteToChar(data, 1, 4);
+	header.program_info_length = byteToShort(data, 5, 12);
+
+
 }
 
 int main_decode_ts() {
@@ -429,10 +456,8 @@ int main_decode_ts() {
 		else {
 			cout << "PMT pid = " << info->program_map_PID << endl;
 			TsPackage *pmtPackage = packageMaps[info->program_map_PID];
-			detectTsPackageTsPAT(pmtPackage);
+			detectPackageTsPMT(pmtPackage);
 		}
 	}
-
-
 	return 0;
 }
