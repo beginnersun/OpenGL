@@ -110,7 +110,7 @@ struct PMTHeader{
 // 00 00 分别表示最大与最小分段号
 // E1 00 重新分组 保留位 111 TS包的PID值 0000100000000 = 256是PCR值
 // F0 00 重新分组 保留位 1111 最后长度 000000000000 节目信息描述符大小
-// 循环次数 = 23 - 9 - 4 = 10字节 / 2 = 两循环
+// 循环次数 = 23 - 9 - 4 = 10字节 / 5 = 两循环
 // 第一次 stream_type = 1B H256格式视频数据
 // E1 00 重新分组 reserved = 111 保留位 elementary_pid = 0000100000000 = 256 表明包含流数据的包的PID = 256
 // F0 00 重新分组 reserved = 1111 保留位 000000000000 = es_info_length 表明后续ES流描述的相关字节数 = 0 接下来跳过0字节
@@ -393,7 +393,25 @@ void detectPackageTsPMT(TsPackage *package) {
 	header.PCR_PID = byteToShort(data, 4, 13);
 	header.reserved_4 = byteToChar(data, 1, 4);
 	header.program_info_length = byteToShort(data, 5, 12);
-
+	int packageSize = header.section_length;
+	int esDataInfoSize = (packageSize - 9 - 4) / 2;
+	header.pes_Infos = new PMTPESDataInfo[esDataInfoSize];
+	for(int i; i < esDataInfoSize ; i++){
+		unsigned char stream_type = *data;
+		data++;
+		unsigned char reserved = byteToChar(data,1,3);
+		unsigned short elementary_pid = byteToShort(data,4,13);
+		unsigned char reserved_1 = byteToChar(data,1,4);
+		unsigned short es_info_length = byteToShort(data,5,12);
+		// header.pes_Infos[0]->stream_type = 
+		header.pes_Infos[i]->stream_type = stream_type;
+		header.pes_Infos[i]->reserved_5 = reserved;
+		header.pes_Infos[i]->elementary_pid = elementary_pid;
+		header.pes_Infos[i]->reserved_6 = reserved_1;
+		header.pes_Infos[i]->es_info_length = es_info_length;
+	}
+	header.crc_32 = byteToInt(data,1,32);
+	package.data = data;
 
 }
 
