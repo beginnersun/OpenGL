@@ -10,10 +10,14 @@
 #include<atlstr.h>
 
 #include<map>
+#include<queue>
 
 using namespace std;
 
 bool isDebug = false;
+#define TYPE_PAT 1
+#define TYPE_PMT 2
+#define TYPE_PES 3
 
 struct TsHeader {
 	unsigned char sync_byte; //第一字节 同步字节：固定0x47   
@@ -28,6 +32,8 @@ struct TsHeader {
 	unsigned char transport_scrambling_control; //第四字节前两位
 	unsigned char adaptation_filed_control; //第四字节3,4位
 	unsigned char continuity_counter; //第四字节 后四位
+	//当前数据类型 
+	unsigned char type;
 };
 struct PATHeader{
 	unsigned char table_id; //第一个字节 表id
@@ -110,7 +116,7 @@ struct PMTHeader{
 // 00 00 分别表示最大与最小分段号
 // E1 00 重新分组 保留位 111 TS包的PID值 0000100000000 = 256是PCR值
 // F0 00 重新分组 保留位 1111 最后长度 000000000000 节目信息描述符大小
-// 循环次数 = 23 - 9 - 4 = 10字节 / 2 = 两循环
+// 循环次数 = 23 - 9 - 4 = 10字节 / 5 = 两循环
 // 第一次 stream_type = 1B H256格式视频数据
 // E1 00 重新分组 reserved = 111 保留位 elementary_pid = 0000100000000 = 256 表明包含流数据的包的PID = 256
 // F0 00 重新分组 reserved = 1111 保留位 000000000000 = es_info_length 表明后续ES流描述的相关字节数 = 0 接下来跳过0字节
@@ -370,6 +376,7 @@ void detectTsPackageTsPAT(TsPackage *tsPackage) {
 	}
 	patHeader.crc_32 = byteToInt(data, 1, 32);
 	tsPackage->data = data;
+	tsPackage.pat = patHeader;
 }
 void detectPackageTsPMT(TsPackage *package) {
 	unsigned char *data = package->data;
@@ -393,8 +400,26 @@ void detectPackageTsPMT(TsPackage *package) {
 	header.PCR_PID = byteToShort(data, 4, 13);
 	header.reserved_4 = byteToChar(data, 1, 4);
 	header.program_info_length = byteToShort(data, 5, 12);
-
-
+	int packageSize = header.section_length;
+	int esDataInfoSize = (packageSize - 9 - 4) / 2;
+	header.pes_Infos = new PMTPESDataInfo[esDataInfoSize];
+	for(int i; i < esDataInfoSize ; i++){
+		unsigned char stream_type = *data;
+		data++;
+		unsigned char reserved = byteToChar(data,1,3);
+		unsigned short elementary_pid = byteToShort(data,4,13);
+		unsigned char reserved_1 = byteToChar(data,1,4);
+		unsigned short es_info_length = byteToShort(data,5,12);
+		// header.pes_Infos[0]->stream_type = 
+		header.pes_Infos[i]->stream_type = stream_type;
+		header.pes_Infos[i]->reserved_5 = reserved;
+		header.pes_Infos[i]->elementary_pid = elementary_pid;
+		header.pes_Infos[i]->reserved_6 = reserved_1;
+		header.pes_Infos[i]->es_info_length = es_info_length;
+	}
+	header.crc_32 = byteToInt(data,1,32);
+	package.data = data;
+	package.pmt = header;
 }
 
 int main_decode_ts() {
@@ -423,13 +448,16 @@ int main_decode_ts() {
 		tsPackage->data = data;
 		detectTsPackageTsHeader(tsPackage);
 		std::cout << "pid = " << tsPackage->headr.pid << std::endl;
-		if (tsPackage->headr.payload_unit_start_indircation == 1)
-		{
-			std::cout << "tsHeader 后是一个调整字节，跳过调整字节 =" << (int)*(tsPackage->data) << "." << std::endl;
-			tsPackage->data++;
-		}
 		if (tsPackage->headr.pid == 0)
 		{
+			//当前pid为0代表开头。。先解析开头 然后再根据开头往后解析(可以使用队列等方式)
+			//payload_unit_start_indircation == 1 代表包后头面1字节是调节数据（跳过即可） 但是如果同时adaptation_filed_control == 3代表包头后一个字节是填充字节长度。
+			//填充字节=（调整字节（0x00)+ 长度-1个0xFF)
+			if (tsPackage->headr.payload_unit_start_indircation == 1 && tsPackage->header.adaptation_filed_control != 3)
+			{
+				std::cout << "tsHeader 后是一个调整字节，跳过调整字节 =" << (int)*(tsPackage->data) << "." << std::endl;
+				tsPackage->data++;
+			}
 			std::cout << "解析PAT表" << std::endl;
 			detectTsPackageTsPAT(tsPackage);
 		}
@@ -444,7 +472,11 @@ int main_decode_ts() {
 		cout << "root结点未找到" << endl;
 		return -1;
 	}
-	rootPackage->pat.programNum;
+	queue.push(rootPackage);
+	while(!queue.isEmpty()){
+		
+	}
+	/*rootPackage->pat.programNum;
 	PATProgramInfo *info = rootPackage->pat.program_info;
 	for (int index = 0; index < rootPackage->pat.programNum; index++)
 	{
@@ -458,6 +490,6 @@ int main_decode_ts() {
 			TsPackage *pmtPackage = packageMaps[info->program_map_PID];
 			detectPackageTsPMT(pmtPackage);
 		}
-	}
+	}*/
 	return 0;
 }
