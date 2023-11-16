@@ -18,6 +18,9 @@ bool isDebug = false;
 #define TYPE_PAT 1
 #define TYPE_PMT 2
 #define TYPE_PES 3
+#define TYPE_MP4 = 4
+#define TYPE_ACC = 5
+#define TYPE_NONE -1
 
 struct TsHeader {
 	unsigned char sync_byte; //第一字节 同步字节：固定0x47   
@@ -98,6 +101,7 @@ struct PMTHeader{
 	unsigned short program_info_length;		 //第十一后四位 + 第十二字节 
 	//循环开始
 	PMTPESDataInfo *pes_Infos;
+	int pesNumber;
 	//循环结束
 	unsigned int crc_32;					 //CRC校验 四字节
 };
@@ -373,10 +377,11 @@ void detectTsPackageTsPAT(TsPackage *tsPackage) {
 			patHeader.program_info->program_map_PID = nidOrPid;
 			patHeader.program_info->network_PID = -1;
 		}
+		patHeader.program_info++;
 	}
 	patHeader.crc_32 = byteToInt(data, 1, 32);
 	tsPackage->data = data;
-	tsPackage.pat = patHeader;
+	tsPackage->pat = patHeader;
 }
 void detectPackageTsPMT(TsPackage *package) {
 	unsigned char *data = package->data;
@@ -403,23 +408,25 @@ void detectPackageTsPMT(TsPackage *package) {
 	int packageSize = header.section_length;
 	int esDataInfoSize = (packageSize - 9 - 4) / 2;
 	header.pes_Infos = new PMTPESDataInfo[esDataInfoSize];
+	header.pesNumber = esDataInfoSize;
 	for(int i; i < esDataInfoSize ; i++){
 		unsigned char stream_type = *data;
 		data++;
-		unsigned char reserved = byteToChar(data,1,3);
-		unsigned short elementary_pid = byteToShort(data,4,13);
-		unsigned char reserved_1 = byteToChar(data,1,4);
-		unsigned short es_info_length = byteToShort(data,5,12);
+		unsigned char reserved = byteToChar(data, 1, 3);
+		unsigned short elementary_pid = byteToShort(data, 4, 13);
+		unsigned char reserved_1 = byteToChar(data, 1, 4);
+		unsigned short es_info_length = byteToShort(data, 5, 12);
 		// header.pes_Infos[0]->stream_type = 
-		header.pes_Infos[i]->stream_type = stream_type;
-		header.pes_Infos[i]->reserved_5 = reserved;
-		header.pes_Infos[i]->elementary_pid = elementary_pid;
-		header.pes_Infos[i]->reserved_6 = reserved_1;
-		header.pes_Infos[i]->es_info_length = es_info_length;
+		header.pes_Infos->stream_type = stream_type;
+		header.pes_Infos->reserved_5 = reserved;
+		header.pes_Infos->elementary_pid = elementary_pid;
+		header.pes_Infos->reserved_6 = reserved_1;
+		header.pes_Infos->es_info_length = es_info_length;
+		header.pes_Infos++;
 	}
-	header.crc_32 = byteToInt(data,1,32);
-	package.data = data;
-	package.pmt = header;
+	header.crc_32 = byteToInt(data, 1, 32);
+	package->data = data;
+	package->pmt = header;
 }
 
 int main_decode_ts() {
@@ -446,20 +453,23 @@ int main_decode_ts() {
 		fread(data, 1, 188, m_TsFile_Fp);
 		std::cout << "first read byte = " << (int)*(data) << std::endl;
 		tsPackage->data = data;
+		//ts包头固定四字节解析
 		detectTsPackageTsHeader(tsPackage);
+		tsPackage->headr.type = TYPE_NONE;
 		std::cout << "pid = " << tsPackage->headr.pid << std::endl;
 		if (tsPackage->headr.pid == 0)
 		{
 			//当前pid为0代表开头。。先解析开头 然后再根据开头往后解析(可以使用队列等方式)
 			//payload_unit_start_indircation == 1 代表包后头面1字节是调节数据（跳过即可） 但是如果同时adaptation_filed_control == 3代表包头后一个字节是填充字节长度。
 			//填充字节=（调整字节（0x00)+ 长度-1个0xFF)
-			if (tsPackage->headr.payload_unit_start_indircation == 1 && tsPackage->header.adaptation_filed_control != 3)
+			if (tsPackage->headr.payload_unit_start_indircation == 1 && tsPackage->headr.adaptation_filed_control != 3)
 			{
 				std::cout << "tsHeader 后是一个调整字节，跳过调整字节 =" << (int)*(tsPackage->data) << "." << std::endl;
 				tsPackage->data++;
 			}
 			std::cout << "解析PAT表" << std::endl;
 			detectTsPackageTsPAT(tsPackage);
+			tsPackage->headr.type = TYPE_PAT;
 		}
 		std::cout << std::endl;
 		packageMaps[tsPackage->headr.pid] = tsPackage;
@@ -472,9 +482,36 @@ int main_decode_ts() {
 		cout << "root结点未找到" << endl;
 		return -1;
 	}
-	queue.push(rootPackage);
-	while(!queue.isEmpty()){
-		
+	queue<TsPackage*> rootQueue;
+	rootQueue.push(rootPackage);
+	while (!rootQueue.empty) {
+		TsPackage *tsNode = rootQueue.pop;
+		if (tsNode->headr.type == TYPE_PAT)
+		{
+			int pmtNum = tsNode->pat.programNum;
+			PATProgramInfo *infos = tsNode->pat.program_info;
+			for (int i = 0; i < pmtNum; i++)
+			{
+				int programPid = infos->program_map_PID;
+				int programNumber = infos->program_number;
+				TsPackage* programPkg = packageMaps[programPid];
+				programPkg->headr.type = TYPE_PMT;
+				rootQueue.push(programPkg);
+			}
+		}
+		else if (tsNode->headr.type == TYPE_PMT)
+		{
+			detectPackageTsPMT(tsNode);
+			int pesNum = tsNode->pmt.pesNumber;
+			PMTPESDataInfo *infos = tsNode->pmt.pes_Infos;
+			for (int i = 0; i < pesNum; i++)
+			{
+				int pesPid = infos->elementary_pid;
+				TsPackage* programPkg = packageMaps[pesPid];
+				programPkg->headr.type = TYPE_PMT;
+				rootQueue.push(programPkg);
+			}
+		}
 	}
 	/*rootPackage->pat.programNum;
 	PATProgramInfo *info = rootPackage->pat.program_info;
