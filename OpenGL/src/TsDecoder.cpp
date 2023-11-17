@@ -34,7 +34,7 @@ struct TsHeader {
 	unsigned short pid; //第二字节后五位+第三字节   id为0 代表后面数据时PAT表  id为1 代表后面数据为CAT表 2 为程序流描述表 0XFFFF 表示空包
 	unsigned char transport_scrambling_control; //第四字节前两位
 	unsigned char adaptation_filed_control; //第四字节3,4位
-	unsigned char continuity_counter; //第四字节 后四位
+	unsigned char continuity_counter; //第四字节 后四位 pid相同时，根据continuity_counter判断先后顺序（一般为从0-15递增）到15之后再从0-15递增
 	//当前数据类型 
 	unsigned char type;
 };
@@ -137,16 +137,25 @@ struct PMTPESDataInfo
 	unsigned char reserved_6;					 //第N次循环的 4字节前四位 保留位
 	unsigned short es_info_length;			 //第N次循环的 4字节后四位 + 5字节 表明后续ES流描述的相关字节数
 };
+struct PESHeader{
+	unsigned int packet_start_code_prefix; //PES固定包头 0x000001三字节
+	unsigned char stream_id; //流类型 0xe0 为视频 0xc0 为音频
+	unsigned short pes_package_lengts; // 流长度
+}
+
 
 struct TsPackageData
 {
 	unsigned char data[188];
 };
+//采取Map加列表方式存储  pid相同使用同一id 然后next追寻下去
 struct TsPackage
 {
 	TsHeader headr;
 	PATHeader pat;
 	PMTHeader pmt;
+	TsPackage *next; //永远只记录下一个 pi相同时，根据headr中的continuity_controller 的值判断先后顺序 如果headr中的payload_unit_start_indircation为0代表此包pat的开始部分
+	TsPackage *lastNode; //如果lastNode == next 说明PAT很小。只有一个包就覆盖了 (用于每次记录最后一个)
 	unsigned char* data;
 };
 TsPackage decodePackage(unsigned char *data) {
@@ -429,6 +438,16 @@ void detectPackageTsPMT(TsPackage *package) {
 	package->pmt = header;
 }
 
+bool isPESPackage(){
+	return true;
+}
+
+// PAT = 0 , CAT = 1 , TSDT = 2, EIT|ST = 0x12 ,RST_ST = 0x13,TDT|TOT|ST = 0x14 这些为PSI数据（也就是那些表格）
+// PMT 等动态生成的PID 需要判断type才能确定类型
+bool isPSIPackage(int pid){
+	return true;
+}
+
 int main_decode_ts() {
 	std::string filename = "C:\\Users\\ThemSun\\Downloads\\0";
 	FILE* m_TsFile_Fp = fopen(filename.c_str(), "rb");
@@ -457,22 +476,39 @@ int main_decode_ts() {
 		detectTsPackageTsHeader(tsPackage);
 		tsPackage->headr.type = TYPE_NONE;
 		std::cout << "pid = " << tsPackage->headr.pid << std::endl;
+		bool isRoot = false;
+		//当前pid为0代表开头。。先解析开头 然后再根据开头往后解析(可以使用队列等方式)
+		//payload_unit_start_indircation == 1 代表包后头面1字节是调节数据（跳过即可） 但是如果同时adaptation_filed_control == 3代表包头后一个字节是填充字节长度。
+		//填充字节=（调整字节（0x00)+ 长度-1个0xFF)
+		//数据为psi时不考虑adaptation_field_control
+		//&& tsPackage->headr.adaptation_filed_control != 3
+		if (tsPackage->headr.payload_unit_start_indircation == 1 && isPSIPackage(tsPackage->headr.pid))
+		{
+			isRoot = true;
+			std::cout << "tsHeader 后是一个调整字节，跳过调整字节 =" << (int)*(tsPackage->data) << "." << std::endl;
+			tsPackage->data++;
+		}
 		if (tsPackage->headr.pid == 0)
 		{
-			//当前pid为0代表开头。。先解析开头 然后再根据开头往后解析(可以使用队列等方式)
-			//payload_unit_start_indircation == 1 代表包后头面1字节是调节数据（跳过即可） 但是如果同时adaptation_filed_control == 3代表包头后一个字节是填充字节长度。
-			//填充字节=（调整字节（0x00)+ 长度-1个0xFF)
-			if (tsPackage->headr.payload_unit_start_indircation == 1 && tsPackage->headr.adaptation_filed_control != 3)
-			{
-				std::cout << "tsHeader 后是一个调整字节，跳过调整字节 =" << (int)*(tsPackage->data) << "." << std::endl;
-				tsPackage->data++;
-			}
 			std::cout << "解析PAT表" << std::endl;
 			detectTsPackageTsPAT(tsPackage);
 			tsPackage->headr.type = TYPE_PAT;
+			if (isRoot) {
+				packageMaps[tsPackage->headr.pid] = tsPackage;
+				tsPackage->lastNode = tsPackage;
+			} else {
+				TsPackage *root = packageMaps[tsPackage->headr.pid];
+				if (root != NULL) {
+					root->lastNode->next = tsPackage;
+					root->lastNode = tsPackage;
+				} else {
+					std::cout << "pid顺序错误" << std::endl;
+				}
+			}
+		} else {
+			packageMaps[tsPackage->headr.pid] = tsPackage;
 		}
 		std::cout << std::endl;
-		packageMaps[tsPackage->headr.pid] = tsPackage;
 		tsPackage++;
 	}
 	fclose(m_TsFile_Fp);
