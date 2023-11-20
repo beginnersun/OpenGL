@@ -100,7 +100,7 @@ struct PMTHeader{
 	unsigned char reserved_4;				 //第十一字节 前四位 保留位
 	unsigned short program_info_length;		 //第十一后四位 + 第十二字节 
 	//循环开始
-	PMTPESDataInfo *pes_Infos;
+	struct PMTPESDataInfo *pes_Infos;
 	int pesNumber;
 	//循环结束
 	unsigned int crc_32;					 //CRC校验 四字节
@@ -141,7 +141,7 @@ struct PESHeader{
 	unsigned int packet_start_code_prefix; //PES固定包头 0x000001三字节
 	unsigned char stream_id; //流类型 0xe0 为视频 0xc0 为音频
 	unsigned short pes_package_lengts; // 流长度
-}
+};
 
 
 struct TsPackageData
@@ -158,10 +158,6 @@ struct TsPackage
 	TsPackage *lastNode; //如果lastNode == next 说明PAT很小。只有一个包就覆盖了 (用于每次记录最后一个)
 	unsigned char* data;
 };
-TsPackage decodePackage(unsigned char *data) {
-	TsPackage tsPackage;
-
-}
 
 unsigned char byteToChar(unsigned char *& byte, int position, int size) {
 	if (isDebug)
@@ -350,13 +346,13 @@ void detectTsPackageTsPAT(TsPackage *tsPackage) {
 	}
 	data++;
 	patHeader.section_synatx_indication = byteToChar(data, 1, 1);
-	std::cout << "section_synatx_indication = " << (int)patHeader.section_synatx_indication << "." << std::endl;
+	//std::cout << "section_synatx_indication = " << (int)patHeader.section_synatx_indication << "." << std::endl;
 	patHeader.zero = byteToChar(data, 2, 1);
-	std::cout << "zero = " << (int)patHeader.zero << "." << std::endl;
+	//std::cout << "zero = " << (int)patHeader.zero << "." << std::endl;
 	patHeader.reserved_1 = byteToChar(data, 3, 2);
-	std::cout << "reserved_1 = " << (int)patHeader.reserved_1 << "." << std::endl;
+	//std::cout << "reserved_1 = " << (int)patHeader.reserved_1 << "." << std::endl;
 	patHeader.section_length = byteToShort(data, 5, 12);
-	std::cout << "section_length = " << (int)patHeader.section_length << "." << std::endl;
+	//std::cout << "section_length = " << (int)patHeader.section_length << "." << std::endl;
 	patHeader.transport_stream_id = byteToShort(data, 1, 16);
 	patHeader.reserved_2 = byteToChar(data, 1, 2);
 	patHeader.version_number = byteToChar(data, 3, 5);
@@ -367,7 +363,7 @@ void detectTsPackageTsPAT(TsPackage *tsPackage) {
 	patHeader.last_section_number = *data;
 	data++;
 	int num = (patHeader.section_length - 5 - 4) / 4;
-	std::cout << "当前PAT表中有 " << num << " 个PMT表" << std::endl;
+	//std::cout << "当前PAT表中有 " << num << " 个PMT表" << std::endl;
 	patHeader.program_info = new PATProgramInfo[num];
 	patHeader.programNum = num;
 	for (int i = 0; i < num; i++)
@@ -376,7 +372,7 @@ void detectTsPackageTsPAT(TsPackage *tsPackage) {
 		patHeader.program_info->program_number = programNumber;
 		patHeader.program_info->reserved_n = byteToChar(data, 1, 3);
 		unsigned short nidOrPid = byteToShort(data, 4, 13);
-		std::cout << "programNumber = " << programNumber << " , 节目号： nidOrPid = " << nidOrPid << std::endl;
+		//std::cout << "programNumber = " << programNumber << " , 节目号： nidOrPid = " << nidOrPid << std::endl;
 		if (programNumber == 0)
 		{
 			patHeader.program_info->network_PID = nidOrPid;
@@ -416,9 +412,11 @@ void detectPackageTsPMT(TsPackage *package) {
 	header.program_info_length = byteToShort(data, 5, 12);
 	int packageSize = header.section_length;
 	int esDataInfoSize = (packageSize - 9 - 4) / 2;
+
 	header.pes_Infos = new PMTPESDataInfo[esDataInfoSize];
+
 	header.pesNumber = esDataInfoSize;
-	for(int i; i < esDataInfoSize ; i++){
+	for(int i = 0; i < esDataInfoSize ; i++){
 		unsigned char stream_type = *data;
 		data++;
 		unsigned char reserved = byteToChar(data, 1, 3);
@@ -449,7 +447,7 @@ bool isPSIPackage(int pid){
 }
 
 int main_decode_ts() {
-	std::string filename = "C:\\Users\\ThemSun\\Downloads\\0";
+	std::string filename = "C:\\Users\\ThemSun\\Downloads\\1";
 	FILE* m_TsFile_Fp = fopen(filename.c_str(), "rb");
 	if (m_TsFile_Fp == NULL)
 	{
@@ -458,7 +456,7 @@ int main_decode_ts() {
 	}
 	int fileSize = filelength(fileno(m_TsFile_Fp));
 	std::cout << "ts File size = " << fileSize << std::endl;
-	float tsPreCount = fileSize / 188.0;
+	float tsPreCount = fileSize / 188.0f;
 	int tsCount = fileSize / 188;
 	if (tsCount * 1.0 == tsPreCount)
 	{
@@ -470,12 +468,12 @@ int main_decode_ts() {
 	{
 		unsigned char *data = new unsigned char[188];
 		fread(data, 1, 188, m_TsFile_Fp);
-		std::cout << "first read byte = " << (int)*(data) << std::endl;
+		//std::cout << "first read byte = " << (int)*(data) << std::endl;
 		tsPackage->data = data;
 		//ts包头固定四字节解析
 		detectTsPackageTsHeader(tsPackage);
 		tsPackage->headr.type = TYPE_NONE;
-		std::cout << "pid = " << tsPackage->headr.pid << std::endl;
+		//std::cout << "pid = " << tsPackage->headr.pid << std::endl;
 		bool isRoot = false;
 		//当前pid为0代表开头。。先解析开头 然后再根据开头往后解析(可以使用队列等方式)
 		//payload_unit_start_indircation == 1 代表包后头面1字节是调节数据（跳过即可） 但是如果同时adaptation_filed_control == 3代表包头后一个字节是填充字节长度。
@@ -485,30 +483,29 @@ int main_decode_ts() {
 		if (tsPackage->headr.payload_unit_start_indircation == 1 && isPSIPackage(tsPackage->headr.pid))
 		{
 			isRoot = true;
-			std::cout << "tsHeader 后是一个调整字节，跳过调整字节 =" << (int)*(tsPackage->data) << "." << std::endl;
+			//std::cout << "tsHeader 后是一个调整字节，跳过调整字节 =" << (int)*(tsPackage->data) << "." << std::endl;
 			tsPackage->data++;
 		}
 		if (tsPackage->headr.pid == 0)
 		{
-			std::cout << "解析PAT表" << std::endl;
+			//std::cout << "解析PAT表" << (int)tsPackage->headr.payload_unit_start_indircation << " , continuity_counter = " << (int)tsPackage->headr.continuity_counter << std::endl;
 			detectTsPackageTsPAT(tsPackage);
+			//std::cout << "pmtId = " << (int)tsPackage->pat.program_info->program_map_PID << std::endl;
 			tsPackage->headr.type = TYPE_PAT;
-			if (isRoot) {
+			TsPackage *root = packageMaps[tsPackage->headr.pid];
+			if (root != NULL) {
+				root->lastNode->next = tsPackage;
+				root->lastNode = tsPackage;
+				//std::cout << "设置next" << std::endl;
+			}
+			else {
 				packageMaps[tsPackage->headr.pid] = tsPackage;
 				tsPackage->lastNode = tsPackage;
-			} else {
-				TsPackage *root = packageMaps[tsPackage->headr.pid];
-				if (root != NULL) {
-					root->lastNode->next = tsPackage;
-					root->lastNode = tsPackage;
-				} else {
-					std::cout << "pid顺序错误" << std::endl;
-				}
 			}
 		} else {
 			packageMaps[tsPackage->headr.pid] = tsPackage;
 		}
-		std::cout << std::endl;
+		//std::cout << std::endl;
 		tsPackage++;
 	}
 	fclose(m_TsFile_Fp);
@@ -518,21 +515,28 @@ int main_decode_ts() {
 		cout << "root结点未找到" << endl;
 		return -1;
 	}
+	cout << "packageMaps.size = " << packageMaps.size() << endl;
 	queue<TsPackage*> rootQueue;
 	rootQueue.push(rootPackage);
-	while (!rootQueue.empty) {
-		TsPackage *tsNode = rootQueue.pop;
+	while (!rootQueue.empty()) {
+		TsPackage *tsNode = rootQueue.front();
+		rootQueue.pop();
 		if (tsNode->headr.type == TYPE_PAT)
 		{
-			int pmtNum = tsNode->pat.programNum;
-			PATProgramInfo *infos = tsNode->pat.program_info;
-			for (int i = 0; i < pmtNum; i++)
+			while (tsNode != NULL)
 			{
-				int programPid = infos->program_map_PID;
-				int programNumber = infos->program_number;
-				TsPackage* programPkg = packageMaps[programPid];
-				programPkg->headr.type = TYPE_PMT;
-				rootQueue.push(programPkg);
+				int pmtNum = tsNode->pat.programNum;
+				cout << "programNum = " << pmtNum << endl;
+				/*PATProgramInfo *infos = tsNode->pat.program_info;
+				for (int i = 0; i < pmtNum; i++)
+				{
+					int programPid = infos->program_map_PID;
+					int programNumber = infos->program_number;
+					TsPackage* programPkg = packageMaps[programPid];
+					programPkg->headr.type = TYPE_PMT;
+					rootQueue.push(programPkg);
+				}*/
+				tsNode = tsNode->next;
 			}
 		}
 		else if (tsNode->headr.type == TYPE_PMT)
