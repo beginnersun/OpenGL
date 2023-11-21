@@ -158,6 +158,7 @@
     <ClCompile Include="src\basegl\Render.cpp" />
     <ClCompile Include="src\cubeMap.cpp" />
     <ClCompile Include="src\FrameBufferTest.cpp" />
+    <ClCompile Include="src\hideImageUtil.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\AssimpMesh.cpp" />
     <ClCompile Include="src\GLTextureImage.cpp" />
