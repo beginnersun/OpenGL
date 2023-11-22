@@ -541,6 +541,7 @@ int main_decode_ts() {
 		}
 		else if (tsNode->headr.type == TYPE_PMT)
 		{
+			//当碰到有效载荷单元起始指示符又变为1的视频TS包，就知道这是下一帧的开始了
 			detectPackageTsPMT(tsNode);
 			int pesNum = tsNode->pmt.pesNumber;
 			PMTPESDataInfo *infos = tsNode->pmt.pes_Infos;
