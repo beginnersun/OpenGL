@@ -18,8 +18,8 @@ bool isDebug = false;
 #define TYPE_PAT 1
 #define TYPE_PMT 2
 #define TYPE_PES 3
-#define TYPE_MP4 = 4
-#define TYPE_ACC = 5
+#define TYPE_MP4 0x1b
+#define TYPE_ACC 5
 #define TYPE_NONE -1
 
 struct TsHeader {
@@ -139,8 +139,45 @@ struct PMTPESDataInfo
 };
 struct PESHeader{
 	unsigned int packet_start_code_prefix; //PES固定包头 0x000001三字节
-	unsigned char stream_id; //流类型 0xe0 为视频 0xc0 为音频
-	unsigned short pes_package_lengts; // 流长度
+	unsigned char stream_id; //流类型 0xE0-EF 为视频 0xC0-DF 为音频
+	unsigned short pes_package_lengts; // 包长度 往后的TS包一直寻找
+	unsigned char dBits; // 两位 10
+	unsigned char scramblingControl; // 两位 00 不加密
+	unsigned char priority; // 优先级 1位 0 优先级低 1优先级高点
+	unsigned char alignmentIndicator; //1 位 数据定位指示器
+	unsigned char copyRight; //1位 版权信息 1为有版权 0为无版权
+	unsigned char originalOrCopy; //1位原始或备份 1原始 0备份
+	unsigned char PTSDTSFlag; //两位 10 表示PES头部有PTS字段 11 表示有PTS或DTS字段 00表示没有 01被禁止  pts与dts每个各占40位
+	unsigned char ESCRFlag; // 1位 表示头部有ESCR字段 0代表无 占42位 由33位的ESCR_Base + 9位的
+	unsigned char ESRATEFLag; // 1位 同上（头部RATE字段）  rate占用 24位
+	unsigned char DSMTrickModeFlag; //1位 同上（track_mode字段）表示哪种 trick mode 被应用于相应的视频流 trick_mode 由trick_mode_control占前3个bit  
+	unsigned char AdditionalCopyInfoFlag; //1位 同上（additional_copy_info字段）  7bits 表示和版权相关的私有数据.
+	unsigned char PESCRCFlag; //1位 同上（CRC字段)  16bits CRC 校验值
+	unsigned char PESExtensionFlag; //1位 同上头部有extension字段
+	//Optional field ：PES扩展字段的可选字段内容顺序为：
+	/*
+	PES_private_data字段：私有数据内容，占位128bit，PES_private_data_flag == 1时此字段存在；
+		Pack_header_field字段：Pack_header_field_flag == 1时此字段存在；字段组成顺序如下：
+		Pack_field_length字段：(UI)指定后面的field的长度，占位8bit；
+		pack_header_field()：长度为Pack_field_length指定；
+		Program_packet_sequence_counter字段：计数器字段，16个bit；当flag字段Program_packet_sequence_counter_flag == 1时此字段存在；字节顺序依次为：
+		marker_bit：占位1bit；
+		packet_sequence_counter字段：(UI)占位7bit；
+		marker_bit：占位1bit；
+		MPEG1_MPEG2_identifier：占位1bit；置位1表示此PES包的负载来自MPEG1流，置位0表示此PES包的负载来自PS流；
+		original_stuff_length：(UI)占位6bit；表示PES头部填充字节长度；
+		P - STD_buffer字段：表示P - STD_buffer内容，占位16bit；P - STD_buffer_flag == '1’时此字段存在；字节顺序依次为：
+		’01’字段：占位2bit；
+		P - STD_buffer_scale：占位1bit；表示用来解释后面P - STD_buffer_size字段的比例因子；如果之前的stream_id表示音频流，则此值应为0，若之前的stream_id表示视频流，则此值应为1，对于其他stream类型，此值可以0或1；
+		P - STD_buffer_size：占位13bit；无符号整数；大于或等于所有P - STD输入缓冲区大小BSn的最大值；若P - STD_buffer_scale == 0，则P - STD_buffer_size以128字节为单位；若P - STD_buffer_scale == 1，则P - STD_buffer_size以1024字节为单位；
+		PES_extension 2个字段：扩展字段的扩展字段；占用N * 8个bit，PES_extension_flag_2 == '1’时此字段存在；字节顺序依次为：
+		marker_bit：占位1bit；
+		PES_extension_field_length：占位7bit，表示扩展区域的长度；
+		Reserved字段：占位8*PES_extension_field_length个bit；
+		*/
+
+	unsigned char PESHeaderDataLength; //8位（以上那7个可选内容的长度） 在 PES 包头部中可选头部字段和任意的填充字节所占的总字节数。可选字段的内容由上面的 7 个 flag 来控制的.
+	unsigned char *esData;
 };
 
 
@@ -318,6 +355,14 @@ unsigned int byteToInt(unsigned char * &byte,int position,int size) {
 	return result;
 }
 
+
+/*
+  将byte跳过对应数量的位
+*/
+unsigned int skipBits(unsigned char * &byte, int size) {
+
+}
+
 void detectTsPackageTsHeader(TsPackage *tsPackage) {
 	unsigned char *data = tsPackage->data;
 	//解析TsHeader
@@ -364,25 +409,33 @@ void detectTsPackageTsPAT(TsPackage *tsPackage) {
 	data++;
 	int num = (patHeader.section_length - 5 - 4) / 4;
 	//std::cout << "当前PAT表中有 " << num << " 个PMT表" << std::endl;
-	patHeader.program_info = new PATProgramInfo[num];
+	PATProgramInfo* program_info = new PATProgramInfo[num];
+	patHeader.program_info = program_info;
 	patHeader.programNum = num;
 	for (int i = 0; i < num; i++)
 	{
 		unsigned short programNumber = byteToShort(data, 1, 16);
-		patHeader.program_info->program_number = programNumber;
-		patHeader.program_info->reserved_n = byteToChar(data, 1, 3);
+		program_info->program_number = programNumber;
+		program_info->reserved_n = byteToChar(data, 1, 3);
 		unsigned short nidOrPid = byteToShort(data, 4, 13);
-		//std::cout << "programNumber = " << programNumber << " , 节目号： nidOrPid = " << nidOrPid << std::endl;
 		if (programNumber == 0)
 		{
-			patHeader.program_info->network_PID = nidOrPid;
-			patHeader.program_info->program_map_PID = -1;
+			program_info->network_PID = nidOrPid;
+			program_info->program_map_PID = -1;
+			if (isDebug)
+			{
+				std::cout << "programNumber = " << programNumber << " , 节目号： nid = " << patHeader.program_info->network_PID << std::endl;
+			}
 		}
 		else {
-			patHeader.program_info->program_map_PID = nidOrPid;
-			patHeader.program_info->network_PID = -1;
+			program_info->program_map_PID = nidOrPid;
+			program_info->network_PID = -1;
+			if (isDebug)
+			{
+				std::cout << "programNumber = " << programNumber << " , 节目号： pid = " << patHeader.program_info->program_map_PID << std::endl;
+			}
 		}
-		patHeader.program_info++;
+		program_info++;
 	}
 	patHeader.crc_32 = byteToInt(data, 1, 32);
 	tsPackage->data = data;
@@ -413,7 +466,8 @@ void detectPackageTsPMT(TsPackage *package) {
 	int packageSize = header.section_length;
 	int esDataInfoSize = (packageSize - 9 - 4) / 2;
 
-	header.pes_Infos = new PMTPESDataInfo[esDataInfoSize];
+	PMTPESDataInfo *pes_Infos = new PMTPESDataInfo[esDataInfoSize];
+	header.pes_Infos = pes_Infos;
 
 	header.pesNumber = esDataInfoSize;
 	for(int i = 0; i < esDataInfoSize ; i++){
@@ -424,16 +478,76 @@ void detectPackageTsPMT(TsPackage *package) {
 		unsigned char reserved_1 = byteToChar(data, 1, 4);
 		unsigned short es_info_length = byteToShort(data, 5, 12);
 		// header.pes_Infos[0]->stream_type = 
-		header.pes_Infos->stream_type = stream_type;
-		header.pes_Infos->reserved_5 = reserved;
-		header.pes_Infos->elementary_pid = elementary_pid;
-		header.pes_Infos->reserved_6 = reserved_1;
-		header.pes_Infos->es_info_length = es_info_length;
-		header.pes_Infos++;
+		pes_Infos->stream_type = stream_type;
+		pes_Infos->reserved_5 = reserved;
+		pes_Infos->elementary_pid = elementary_pid;
+		pes_Infos->reserved_6 = reserved_1;
+		pes_Infos->es_info_length = es_info_length;
+		pes_Infos++;
 	}
 	header.crc_32 = byteToInt(data, 1, 32);
 	package->data = data;
 	package->pmt = header;
+}
+
+void detectPackageTsPES(TsPackage *package) {
+	unsigned char *data = package->data;
+	int adaptationFiledSize = -1;
+	//adaptation_filed_control == 11 代表有调整字段 需要跳过
+	if (package->headr.adaptation_filed_control == 3)
+	{
+		adaptationFiledSize = *data;
+		data++;
+	}
+	// 跳过对应字节数
+	while (adaptationFiledSize > 0)
+	{
+		data++;
+	}
+	unsigned int pesStart = byteToInt(data, 1, 24);
+	if (pesStart != 1)
+	{
+		cout << "起始字符错误" << endl;
+		return;
+	}
+	PESHeader header;
+	header.packet_start_code_prefix = pesStart;
+	header.stream_id = byteToChar(data, 1, 8);
+	data++;
+	header.pes_package_lengts = byteToShort(data, 1, 16);
+	header.dBits = byteToChar(data, 1, 2);
+	header.scramblingControl = byteToChar(data, 3, 2);
+	header.priority = byteToChar(data, 5, 1);
+	header.alignmentIndicator = byteToChar(data, 6, 1);
+	header.copyRight = byteToChar(data, 7, 1);
+	header.originalOrCopy = byteToChar(data, 8, 1);
+	data++;
+	header.PTSDTSFlag = byteToChar(data, 1, 2);
+	header.ESCRFlag = byteToChar(data, 3, 1);
+	header.ESRATEFLag = byteToChar(data, 4, 1);
+	header.DSMTrickModeFlag = byteToChar(data, 5, 1);
+	header.AdditionalCopyInfoFlag = byteToChar(data, 6, 1);
+	header.PESCRCFlag = byteToChar(data, 7, 1);
+	header.PESExtensionFlag = byteToChar(data, 8, 1);
+	header.PESHeaderDataLength = byteToChar(data, 1, 8);
+	data++;
+	if (header.PTSDTSFlag == 2)
+	{
+		unsigned char bit5_3 = byteToChar(data, 5, 3);
+		data++;
+		unsigned short bit0_15 = byteToShort(data, 1, 15);
+		unsigned short bit0_16 = byteToShort(data, 1, 15);
+	}
+	if (header.PTSDTSFlag == 3)
+	{
+	}
+
+	if (header.ESCRFlag == 1)
+	{
+		unsigned long bit33_1 = byteToInt(data, 1, 32);
+		unsigned long escrBase = bit33_1 << 1 | byteToChar(data, 1, 1);
+		unsigned short escrExtension = byteToShort(data, 2, 9);
+	}
 }
 
 bool isPESPackage(){
@@ -464,6 +578,7 @@ int main_decode_ts() {
 	}
 	TsPackage *tsPackage = (TsPackage *)malloc(tsCount * sizeof(TsPackage));
 	map<int, TsPackage*> packageMaps;
+	map<int, bool> isAdded;
 	for (int i = 0; i < tsCount; i++)
 	{
 		unsigned char *data = new unsigned char[188];
@@ -503,9 +618,16 @@ int main_decode_ts() {
 				tsPackage->lastNode = tsPackage;
 			}
 		} else {
-			packageMaps[tsPackage->headr.pid] = tsPackage;
+			TsPackage *root = packageMaps[tsPackage->headr.pid];
+			if (root != NULL) {
+				root->lastNode->next = tsPackage;
+				root->lastNode = tsPackage;
+			}
+			else {
+				packageMaps[tsPackage->headr.pid] = tsPackage;
+				tsPackage->lastNode = tsPackage;
+			}
 		}
-		//std::cout << std::endl;
 		tsPackage++;
 	}
 	fclose(m_TsFile_Fp);
@@ -526,32 +648,79 @@ int main_decode_ts() {
 			while (tsNode != NULL)
 			{
 				int pmtNum = tsNode->pat.programNum;
-				cout << "programNum = " << pmtNum << endl;
-				/*PATProgramInfo *infos = tsNode->pat.program_info;
+				PATProgramInfo *infos = tsNode->pat.program_info;
 				for (int i = 0; i < pmtNum; i++)
 				{
 					int programPid = infos->program_map_PID;
 					int programNumber = infos->program_number;
-					TsPackage* programPkg = packageMaps[programPid];
-					programPkg->headr.type = TYPE_PMT;
-					rootQueue.push(programPkg);
-				}*/
+					if (!isAdded[programPid])
+					{
+						TsPackage* programPkg = packageMaps[programPid];
+						if (programPkg != NULL)
+						{
+							programPkg->headr.type = TYPE_PMT;
+							rootQueue.push(programPkg);
+							isAdded[programPid] = true;
+							TsPackage *pmNext = programPkg->next;
+							while (pmNext != NULL)
+							{
+								pmNext->headr.type = TYPE_PMT;
+								pmNext = pmNext->next;
+							}
+						}
+						else {
+							cout << "找不到的pid = " << programPid << endl;
+						}
+					}
+					infos++;
+				}
 				tsNode = tsNode->next;
 			}
 		}
 		else if (tsNode->headr.type == TYPE_PMT)
 		{
 			//当碰到有效载荷单元起始指示符又变为1的视频TS包，就知道这是下一帧的开始了
-			detectPackageTsPMT(tsNode);
-			int pesNum = tsNode->pmt.pesNumber;
-			PMTPESDataInfo *infos = tsNode->pmt.pes_Infos;
-			for (int i = 0; i < pesNum; i++)
+			while (tsNode != NULL)
 			{
-				int pesPid = infos->elementary_pid;
-				TsPackage* programPkg = packageMaps[pesPid];
-				programPkg->headr.type = TYPE_PMT;
-				rootQueue.push(programPkg);
+				cout << "有效载荷起始指示符 = " << (int)tsNode->headr.payload_unit_start_indircation << " , country" << (int)tsNode->headr.continuity_counter << endl;
+				detectPackageTsPMT(tsNode);
+				int pesNum = tsNode->pmt.pesNumber;
+				PMTPESDataInfo *infos = tsNode->pmt.pes_Infos;
+				cout << "pesNum = " << pesNum << endl;
+				for (int i = 0; i < pesNum; i++)
+				{
+					TsPackage *pesPackage = packageMaps[infos->elementary_pid];
+					if (pesPackage != NULL && !isAdded[infos->elementary_pid])
+					{
+						pesPackage->headr.type = infos->stream_type;
+						rootQueue.push(pesPackage);
+						isAdded[pesPackage->headr.pid] = true;
+						TsPackage *pmNext = pesPackage->next;
+						while (pmNext != NULL)
+						{
+							pmNext->headr.type = infos->stream_type;
+							pmNext = pmNext->next;
+						}
+					}
+					if ((int)infos->stream_type != TYPE_MP4)
+					{
+						cout << "type = " << (int)infos->stream_type << " , pid = " << infos->elementary_pid << " , length = " << infos->es_info_length << endl;
+					}
+				}
+				cout << "结束一段" << endl;
+				tsNode = tsNode->next;
 			}
+			//for (int i = 0; i < pesNum; i++)
+			//{
+				//int pesPid = infos->elementary_pid;
+				//TsPackage* programPkg = packageMaps[pesPid];
+				//programPkg->headr.type = TYPE_PMT;
+				//rootQueue.push(programPkg);
+			//}
+		}
+		else if (tsNode->headr.type == TYPE_MP4)
+		{
+
 		}
 	}
 	/*rootPackage->pat.programNum;

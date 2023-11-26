@@ -269,6 +269,7 @@
     <ClInclude Include="src\FileSystem.h" />
     <ClInclude Include="src\FrameBufferTest.h" />
     <ClInclude Include="src\GLTextureImage.h" />
+    <ClInclude Include="src\hideImageUtil.h" />
     <ClInclude Include="src\Model.h" />
     <ClInclude Include="src\SensorGLSL.h" />
     <ClInclude Include="src\Shader.h" />

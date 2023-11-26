@@ -9,9 +9,6 @@
 //需要提前定义此标识符，确保stb_image的使用
 //#define STB_IMAGE_IMPLEMENTATION
 #include "GLTextureImage.h"
-
-#include <stb_image.h>
-
 #include <glm.hpp>
 #include <gtc/matrix_transform.hpp>
 #include <gtc/type_ptr.hpp>

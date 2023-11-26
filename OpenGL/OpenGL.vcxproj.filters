@@ -273,6 +273,9 @@
     <ClInclude Include="src\TsDecoder.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="src\hideImageUtil.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Text Include="res\shaders\model\Text.txt" />
