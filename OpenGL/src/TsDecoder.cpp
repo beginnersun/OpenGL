@@ -536,18 +536,74 @@ void detectPackageTsPES(TsPackage *package) {
 		unsigned char bit5_3 = byteToChar(data, 5, 3);
 		data++;
 		unsigned short bit0_15 = byteToShort(data, 1, 15);
+		data++;
 		unsigned short bit0_16 = byteToShort(data, 1, 15);
+		data++;
 	}
 	if (header.PTSDTSFlag == 3)
 	{
+		unsigned char bit5_3 = byteToChar(data, 5, 3);
+		data++;
+		unsigned short bit0_15 = byteToShort(data, 1, 15);
+		data++;
+		unsigned short bit0_16 = byteToShort(data, 1, 15);
+		data++;
 	}
 
 	if (header.ESCRFlag == 1)
 	{
 		unsigned long bit33_1 = byteToInt(data, 1, 32);
-		unsigned long escrBase = bit33_1 << 1 | byteToChar(data, 1, 1);
+		unsigned long escrBase = (bit33_1 << 1) | byteToChar(data, 1, 1);
 		unsigned short escrExtension = byteToShort(data, 2, 9);
 	}
+	if (header.ESRATEFLag == 1)
+	{
+		unsigned int esRate = byteToInt(data, 1, 24);
+	}
+	if (header.DSMTrickModeFlag == 1)
+	{
+		unsigned char trickModeControl = byteToChar(data, 1, 3);
+		unsigned char trickMode = byteToChar(data, 4, 5);
+		data++;
+	}
+	if (header.AdditionalCopyInfoFlag == 1)
+	{
+		//跳过1位的占位符
+		unsigned char additionalCopyInfo = byteToChar(data, 2, 7); //版权相关私有数据
+		data++;
+	}
+	if (header.PESCRCFlag == 1)
+	{
+		unsigned char pesPackageCrc = byteToShort(data, 1, 16); //校验值
+	}
+	if (header.PESExtensionFlag == 1)
+	{
+		unsigned char esPrivateDataFlag = byteToChar(data, 1, 1);
+		unsigned char esHeaderFieldFlag = byteToChar(data, 2, 1);
+		unsigned char esPacketSequenceCounterFlag = byteToChar(data, 4, 1);
+		unsigned char esReservedFlag = byteToChar(data, 5, 3);
+		unsigned char extensionFlag2 = byteToChar(data, 8, 1);
+		if (esPrivateDataFlag == 1)
+		{
+			//读取128bit字节数据 PES_private_data
+		}
+		if (esHeaderFieldFlag == 1)
+		{
+			//P读取8Bit的 Pack_field_length + pack_header_field(length = Pack_field_length)
+		}
+		if (esPacketSequenceCounterFlag == 1)
+		{
+			//读取16bit 
+			/*	marker_bit：占位1bit；
+				packet_sequence_counter字段：(UI)占位7bit；
+				marker_bit：占位1bit；
+				MPEG1_MPEG2_identifier：占位1bit；置位1表示此PES包的负载来自MPEG1流，置位0表示此PES包的负载来自PS流；
+				original_stuff_length：(UI)占位6bit；表示PES头部填充字节长度；*/
+			unsigned char markerBit = byteToChar(data, 1, 1);
+			//unsigned char packetSequ
+		}
+	}
+
 }
 
 bool isPESPackage(){
