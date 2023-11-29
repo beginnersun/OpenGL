@@ -177,8 +177,18 @@ struct PESHeader{
 		*/
 
 	unsigned char PESHeaderDataLength; //8位（以上那7个可选内容的长度） 在 PES 包头部中可选头部字段和任意的填充字节所占的总字节数。可选字段的内容由上面的 7 个 flag 来控制的.
+	struct ESHeader *esHeader;
 	unsigned char *esData;
 };
+/*
+* 首个才存在的Header
+*/
+struct ESHeader{
+	unsigned int freshNaluHeader; //占32位  四字节 若为ts中ES的第一个包则为 00 00 00 01
+	unsigned short aud; //占 16位
+	unsigned int contNaluHeader; //占24位 固定 00 00 01
+	unsigned char naluHeader; //占8位 6 代表 SEI
+}
 
 
 struct TsPackageData
@@ -706,7 +716,13 @@ void detectPackageTsPES(TsPackage *package) {
 		}
 		cout << "有 扩展数据 数据 " << endl;
 	}
-
+	ESHeader esHeader;
+	esHeader.freshNaluHeader = byteToChar(data,1,32);
+	esHeader.aud = byteToShort(data,1,16);
+	esHeader.contNaluHeader = byteToChar(data,1,24);
+	esHeader.naluHeader = byteToChar(data,1,8);
+	data++;
+	
 }
 
 bool isPESPackage(){
