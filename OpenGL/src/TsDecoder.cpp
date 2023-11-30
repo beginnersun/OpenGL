@@ -188,7 +188,7 @@ struct ESHeader{
 	unsigned short aud; //占 16位
 	unsigned int contNaluHeader; //占24位 固定 00 00 01
 	unsigned char naluHeader; //占8位 6 代表 SEI
-}
+};
 
 
 struct TsPackageData
@@ -204,6 +204,7 @@ struct TsPackage
 	TsPackage *next; //永远只记录下一个 pi相同时，根据headr中的continuity_controller 的值判断先后顺序 如果headr中的payload_unit_start_indircation为0代表此包pat的开始部分
 	TsPackage *lastNode; //如果lastNode == next 说明PAT很小。只有一个包就覆盖了 (用于每次记录最后一个)
 	unsigned char* data;
+	unsigned char* srcData;
 };
 
 unsigned char byteToChar(unsigned char *& byte, int position, int size) {
@@ -507,8 +508,19 @@ void detectPackageTsPMT(TsPackage *package) {
 	package->pmt = header;
 }
 
-void detectPackageTsPES(TsPackage *package) {
-	cout << "解析PES id = " << package->headr.pid << endl;
+
+int getSizeToEndByte(unsigned char *data, unsigned char *eByte) {
+	int size = 0;
+	while (data != eByte) {
+		data++;
+		size++;
+	}
+	return size;
+}
+
+void detectPackageTsPES(TsPackage *package,FILE *frameFile) {
+	//cout << "解析PES id = " << package->headr.pid << endl;
+	std::cout << "pid = " << (int)package->headr.pid << "解析PES表" << (int)package->headr.payload_unit_start_indircation << " , continuity_counter = " << (int)package->headr.continuity_counter << std::endl;
 	unsigned char *data = package->data;
 	int adaptationFiledSize = -1;
 	//adaptation_filed_control == 11 代表有调整字段 需要跳过
@@ -518,7 +530,7 @@ void detectPackageTsPES(TsPackage *package) {
 		data++;
 	}
 	// 跳过对应字节数
-	cout << "跳过字节数 : " << (int)adaptationFiledSize << endl;
+	//cout << "跳过字节数 : " << (int)adaptationFiledSize << endl;
 
 	skipBits(data, adaptationFiledSize);
 	/*unsigned char pre1 = *data;
@@ -536,7 +548,7 @@ void detectPackageTsPES(TsPackage *package) {
 	PESHeader header;
 	header.packet_start_code_prefix = pesStart;
 	header.stream_id = byteToChar(data, 1, 8);
-	cout << "packetStart = " << (int)pesStart << " , streamId = " << (int)header.stream_id << endl;
+	//cout << "packetStart = " << (int)pesStart << " , streamId = " << (int)header.stream_id << endl;
 	data++;
 	header.pes_package_lengts = byteToShort(data, 1, 16);
 	header.dBits = byteToChar(data, 1, 2);
@@ -545,12 +557,11 @@ void detectPackageTsPES(TsPackage *package) {
 	header.alignmentIndicator = byteToChar(data, 6, 1);
 	header.copyRight = byteToChar(data, 7, 1);
 	header.originalOrCopy = byteToChar(data, 8, 1);
-	cout << "pesPackageLengts = " << (int)header.pes_package_lengts << endl << "  , dBits = " << (int)header.dBits << endl
+	/*cout << "pesPackageLengts = " << (int)header.pes_package_lengts << endl << "  , dBits = " << (int)header.dBits << endl
 		<< " , scramblingControl = " << (int)header.scramblingControl << endl << "  , priority = " << (int)header.priority << endl
 		<< " , alignmentIndicator = " << (int)header.alignmentIndicator << endl << "  , copyRight = " << (int)header.copyRight << endl
-		<< " , originalOrCopy = " << (int)header.originalOrCopy << endl;
+		<< " , originalOrCopy = " << (int)header.originalOrCopy << endl;*/
 	data++;
-	cout << "前一个 = " << (int)*data << endl;
 	header.PTSDTSFlag = byteToChar(data, 1, 2);
 	header.ESCRFlag = byteToChar(data, 3, 1);
 	header.ESRATEFLag = byteToChar(data, 4, 1);
@@ -561,7 +572,6 @@ void detectPackageTsPES(TsPackage *package) {
 	data++;
 	header.PESHeaderDataLength = byteToChar(data, 1, 8);
 	data++;
-	cout << "pesHeaderDataLength = " << (int)header.PESHeaderDataLength << endl;
 	if (header.PTSDTSFlag == 2)
 	{
 		unsigned char bit33_1_3 = byteToChar(data, 5, 3);
@@ -722,8 +732,20 @@ void detectPackageTsPES(TsPackage *package) {
 	esHeader.contNaluHeader = byteToChar(data,1,24);
 	esHeader.naluHeader = byteToChar(data,1,8);
 	data++;
-	
+	unsigned char *endByte = package->srcData + 187;
+	int size = getSizeToEndByte(data, endByte);
+	cout << "写入数据 size = " << size << " , endByte = " << *endByte << endl;
+	//fwrite(data, size, 1, frameFile);
 }
+
+void detectPackageGetES(TsPackage *package, FILE *frameFile) {
+	std::cout << "pid = " << (int)package->headr.pid << "解析ES表" << (int)package->headr.payload_unit_start_indircation << " , continuity_counter = " << (int)package->headr.continuity_counter << std::endl;
+	//cout << "解析PES id = " << package->headr.pid << endl;
+	int size = 188 - 4; //188默认一个包字节数  减去4个头部数据
+	unsigned char *data = package->data;
+	//fwrite(data, size, 1, frameFile);
+}
+
 
 bool isPESPackage(){
 	return true;
@@ -760,6 +782,7 @@ int main_decode_ts() {
 		fread(data, 1, 188, m_TsFile_Fp);
 		//std::cout << "first read byte = " << (int)*(data) << std::endl;
 		tsPackage->data = data;
+		tsPackage->srcData = data;
 		//ts包头固定四字节解析
 		detectTsPackageTsHeader(tsPackage);
 		tsPackage->headr.type = TYPE_NONE;
@@ -816,6 +839,7 @@ int main_decode_ts() {
 	queue<TsPackage*> rootQueue;
 	rootQueue.push(rootPackage);
 	bool first = true;
+	FILE *frameFile = fopen("frame.zs","wb+");
 	while (!rootQueue.empty()) {
 		TsPackage *tsNode = rootQueue.front();
 		rootQueue.pop();
@@ -875,6 +899,7 @@ int main_decode_ts() {
 						TsPackage *pmNext = pesPackage->next;
 						while (pmNext != NULL)
 						{
+							rootQueue.push(pmNext);
 							pmNext->headr.type = infos->stream_type;
 							pmNext = pmNext->next;
 						}
@@ -897,13 +922,21 @@ int main_decode_ts() {
 		}
 		else if (tsNode->headr.type == TYPE_MP4)
 		{
+			first = false;
+			if (tsNode->headr.payload_unit_start_indircation == 1)
+			{
+				first = true;
+			}
 			if (first)
 			{
-				detectPackageTsPES(tsNode);
-				first = false;
+				detectPackageTsPES(tsNode, frameFile);
+			}
+			else {
+				detectPackageGetES(tsNode, frameFile);
 			}
 		}
 	}
+	fclose(frameFile);
 	/*rootPackage->pat.programNum;
 	PATProgramInfo *info = rootPackage->pat.program_info;
 	for (int index = 0; index < rootPackage->pat.programNum; index++)
