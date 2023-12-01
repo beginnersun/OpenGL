@@ -508,12 +508,13 @@ void detectPackageTsPMT(TsPackage *package) {
 	package->pmt = header;
 }
 
-
-int getSizeToEndByte(unsigned char *data, unsigned char *eByte) {
-	int size = 0;
-	while (data != eByte) {
-		data++;
+int getLengtToEndByte(unsigned char *data,unsigned char *eByte){
+	unsigned int size = 0;
+	//通过地址比较 地址相同跳出循环
+	cout << "开始地址" << static_cast<const void*>(data) << " , 结尾地址：" << static_cast<const void *>(eByte) << endl;
+	while(data != eByte){
 		size++;
+		data++;
 	}
 	return size;
 }
@@ -733,7 +734,7 @@ void detectPackageTsPES(TsPackage *package,FILE *frameFile) {
 	esHeader.naluHeader = byteToChar(data,1,8);
 	data++;
 	unsigned char *endByte = package->srcData + 187;
-	int size = getSizeToEndByte(data, endByte);
+	int size = getLengtToEndByte(data, endByte);
 	cout << "写入数据 size = " << size << " , endByte = " << *endByte << endl;
 	//fwrite(data, size, 1, frameFile);
 }
